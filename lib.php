@@ -28,7 +28,7 @@
 function report_psgrading_downloader_extend_navigation_course($navigation, $course, $context) {
 
     if (has_capability('moodle/site:viewuseridentity', $context)) {
-        $url = new moodle_url('/report/psgrading_downloader/index.php', array('id' => $course->id, 'cmid' => $context->id));
+        $url = new moodle_url('/report/psgrading_downloader/index.php', array('id' => $course->id));
         $navigation->add(get_string('pluginname', 'report_psgrading_downloader'), $url, navigation_node::COURSE_INDEX_PAGE, null, null, new pix_icon('i/report', ''));
     }
 }

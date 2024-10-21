@@ -34,22 +34,34 @@ class psgrading_downloader_form extends moodleform {
         $mform = $this->_form;
         $mform->addElement('hidden', 'id', $this->_customdata['id']);
         $mform->settype('id', PARAM_INT); // To be able to pre-fill the form.
-        $mform->addElement('hidden', 'cmid', $this->_customdata['cmid']);
-        $mform->settype('cmid', PARAM_INT); // To be able to pre-fill the form.
 
+        
+        // Filter by group
+        $coursegroups = array();
+        $coursegroups[] =  get_string('all', 'report_psgrading_downloader');
+        $mform->addElement('select', 'filterbygroup', get_string('allgroups', 'report_psgrading_downloader'), $coursegroups);
+        $mform->getElement('filterbygroup')->setMultiple(true);
+        $mform->setDefault('filterbygroup', 0);
+        
+        // PS grading activities
+        
         $psgactivities = array();
         $psgactivities[] = get_string('all', 'report_psgrading_downloader');
 
         $results = $this->_customdata['psids'];
 
         foreach($results as $row) {
-            $psgactivities[$row->id] = $row->name;
+            $psgactivities[$row->cmid] = $row->name;
         }
 
         $mform->addElement('select', 'psgradinactivities', get_string('allpsgactivities', 'report_psgrading_downloader'), $psgactivities);
         $mform->getElement('psgradinactivities')->setMultiple(true);
         $mform->setDefault('psgradinactivities', 0);
 
+        // Published  
+
+        $mform->addElement('advcheckbox', 'includeunreleased', get_string('includeunreleased', 'report_psgrading_downloader'),  '',[], array(0,1));
+        $mform->addHelpButton('includeunreleased', 'includeunreleased', 'report_psgrading_downloader');
         $buttonarray = array();
 
         $buttonarray[] = &$mform->createElement('submit', 'submitbutton', get_string('filter', 'report_psgrading_downloader'));

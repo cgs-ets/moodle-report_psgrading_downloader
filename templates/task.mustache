@@ -1,0 +1,36 @@
+<div class="psgrading-details">
+      <!-- SELECTED STUDENT HEADER START --> <div class="psgrading-header">  
+        <h1 class = 'activitynameheader'> {{activityname}} </h1> 
+        <div class="selected-student" data-userid="{{student.id}}">
+            <img src="{{student.profilephoto}}" class="round" /> <a href="{{student.overviewurl}}"><span class="name">{{student.fullname}}</span></a>
+        </div>
+    </div> <!-- SELECTED STUDENT HEADER END-->
+  
+    <div class="contents">
+        <h2>{{task.taskname}} . {{ task.pypuoi}}</h2>
+        <div class="details-outcomes">
+            <div class="heading">{{#str}}task:outcomes, mod_psgrading{{/str}}</div>
+            {{{task.outcomes}}}
+        </div>
+        {{#gradeinfo.didnotsubmit}}
+          <div class="heading alert alert-info">{{student.fullname}} did not submit this task.</div>
+        {{/gradeinfo.didnotsubmit}}
+        {{^gradeinfo.didnotsubmit}}
+            {{>mod_psgrading/details_criterions}}
+            {{#gradeinfo.engagement}}
+                <div class="details-engagement">
+                    <div class="heading">{{#str}}mark:engagement, mod_psgrading{{/str}}</div>
+                    <br>
+                     <strong>{{ gradeinfo.engagementlang}} </strong>
+                     <br><br>
+                    {{>mod_psgrading/details_engagement}}
+                </div>
+            {{/gradeinfo.engagement}}
+            {{>mod_psgrading/details_evidence}}
+        {{/gradeinfo.didnotsubmit}}
+        <div class="details-comment">
+            <div class="heading">{{#str}}mark:comment, mod_psgrading{{/str}}</div>
+            {{{gradeinfo.comment}}}
+        </div>
+    </div>
+</div>

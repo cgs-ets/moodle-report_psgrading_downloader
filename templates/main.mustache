@@ -1,0 +1,38 @@
+
+<table class="table psgrading-downloader-table" data-activities-json = "{{psgradingjson}}" data-all-users = "{{allstudents}}">
+    <thead>
+        <tr>
+            {{#headers}}
+            <th scope="col">{{{.}}}</th>
+            {{/headers}}
+        </tr>
+    </thead>
+    <tbody>
+        {{#rows}}
+        <tr>
+            {{#columns}}
+             <td>{{{.}}}</td>
+            {{/columns}}
+        </tr>
+        {{/rows}}
+    </tbody>
+</table>
+
+<hr>
+
+{{! Form to collect the activities that will be downloaded }}
+<div class ='report-psgrading-downloader'>
+    <form  action="{{action}}" method="post" accept-charset="utf-8">
+        <input name="id" type="hidden" value="{{id}}">  {{! course id}}
+        <input name="sesskey" type="hidden" value="{{sessionkey}}">
+        <input name="selectedusers" type="hidden" value="[]">
+        <input name="selectedactivities" type="hidden" value="{{psgradingjson}}"> {{! psgrading id}}
+        <button type="submit" class="btn btn-primary btn-psgrading-download">{{#str}}download, report_psgrading_downloader {{/str}}</button>
+    </form>
+</div>
+
+{{#js}}
+require(['report_psgrading_downloader/main'], function(Main) {
+    Main.init();
+});
+{{/js}}

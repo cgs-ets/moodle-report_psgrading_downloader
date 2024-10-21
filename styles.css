@@ -1,0 +1,227 @@
+.report-psgrading-downloader {
+    text-align: center;
+}
+
+.attachment .photo,
+#page-mod-psgrading-mark .attachment .doc,
+.attachment .doc,
+.attachment .video {
+    height: 90px;
+    background-color: #ccc;
+    float: left;
+    border-right: 1px solid #fff;
+    border-bottom: 1px solid #fff;
+    min-width: 20px;
+    position: relative;
+    overflow: hidden;
+}
+
+.attachment .photo a,
+.attachment .doc a,
+.attachment .video a {
+    cursor: zoom-in;
+}
+
+.attachment .photo img,
+.attachment .doc img,
+.attachment .video img {
+    height: 100%;
+    width: auto;
+    display: block;
+}
+
+.attachment .doc {
+    width: 85px;
+    font-size: 11px;
+    text-align: center;
+    line-height: 11px;
+    background: #e2e4e6;
+}
+
+.attachment .doc a {
+    margin: 7px;
+    display: block;
+    overflow: hidden;
+    height: 76px;
+}
+
+.attachment .doc .icon {
+    height: 30px;
+    margin: 6px auto;
+}
+
+.attachment .video video {
+    height: 100%;
+    width: auto;
+    display: block;
+}
+
+.attachment .video i {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    color: white;
+    border: 2px solid #fff;
+    padding: 10px;
+    border-radius: 50%;
+    width: 38px;
+    height: 38px;
+    text-align: center;
+    font-size: 14px;
+}
+
+.attachment .attachment-body {
+    position: relative;
+}
+
+.attachment .attachment-body.has-cover {
+    box-shadow: none;
+    background-color: transparent;
+    position: absolute;
+    top: 5px;
+    left: 5px;
+}
+
+.attachment .attachment-body.has-cover .photo,
+.attachment .attachment-body.has-cover .doc,
+.attachment .attachment-body.has-cover .video {
+    height: 35px;
+    float: left;
+    border: 1px solid #fff;
+    min-width: 20px;
+    position: relative;
+    margin-right: 4px;
+}
+
+#region-main-box .left-column,
+#page-mod-psgrading-print #region-main-box .left-column {
+    width: 100%;
+    background: #fff;
+}
+
+
+.contents {
+    padding: 20px;
+}
+
+.description {
+    margin-bottom: 20px;
+    line-height: 25px;
+}
+
+.description strong {
+    font-weight: 600;
+    font-size: 114%;
+    margin-top: 8px;
+    display: inline-block;
+}
+
+.heading {
+    font-weight: bold;
+    font-size: 120%;
+    padding-bottom: 5px;
+}
+
+.details-outcomes {
+    margin-bottom: 25px;
+}
+
+.details-criterions {
+    margin-bottom: 30px;
+}
+
+.details-criterions .headings,
+.details-criterions .criterions {
+    display: table;
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.details-criterions .tbl-th,
+.details-criterions .tbl-tr {
+    display: table-row;
+    padding: 0;
+}
+
+.details-criterions .tbl-th {
+    font-weight: 600;
+    font-size: 110%;
+}
+
+.details-criterions .tbl-th .tbl-col {
+    border: 0 none;
+}
+
+.details-criterions .tbl-col {
+    display: table-cell;
+    width: 20%;
+    padding: 5px 5px 5px 5px;
+    vertical-align: top;
+    position: relative;
+    border: 1px dashed #ccc;
+}
+
+.details-criterions .tbl-col.tbl-col-first {
+    padding-left: 0;
+}
+
+.details-criterions .tbl-col.level1,
+.details-criterions .tbl-col.level5 {
+    width: 10%;
+}
+
+.details-criterions .tbl-col .box {
+    width: 100%;
+    padding: 10px;
+    font-size: 90%;
+    border-radius: 2px;
+}
+
+.details-criterions .tbl-col.descriptor {
+    border: 1px solid #ccc;
+    background: #f2f4f6;
+    border-right: 1px solid #ccc;
+}
+
+.details-criterions .tbl-col.level5.selected {
+    background-color: #D90617;
+}
+
+.details-criterions .tbl-col.level4.selected {
+    background-color: #F97D01;
+}
+
+.details-criterions .tbl-col.level3.selected {
+    background-color: #FFDB00;
+}
+
+.details-criterions .tbl-col.level2.selected {
+    background-color: #6BB82E;
+}
+
+.details-criterions .tbl-col.level1.selected {
+    background-color: #00812F;
+}
+
+.details-evidences {
+    margin-top: 30px;
+}
+
+.details-evidences table {
+    border: 1px solid #ccc;
+    max-width: 500px;
+    background: #fff;
+}
+
+.details-evidences h6 {
+    font-weight: 600;
+}
+
+
+/* Add this to remove bullet points */
+ul.tbl-th,
+ul.tbl-tr {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}

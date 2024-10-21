@@ -30,3 +30,7 @@ $string['all']                           = 'All';
 $string['filter']                        = 'Filter';
 $string['cancel']                        = 'Cancel';
 $string['allpsgactivities']              = 'Choose one or more PS grading activities';
+$string['allgroups']                     = 'Choose one or groups to filter';
+$string['download']                      = 'Download report(s)';
+$string['includeunreleased']             = 'Include tasks for which feedback has not been released.';
+$string['includeunreleased_help']        = 'If checked, all tasks related to the activity will be printed';

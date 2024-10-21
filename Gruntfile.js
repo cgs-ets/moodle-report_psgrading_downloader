@@ -16,14 +16,10 @@
 /* eslint-env node */
 
 /**
- * Plugin administration pages are defined here.
- *
- * @package     report_psgrading_downloader
- * @category    admin
- * @copyright   2024 Veronica Bermegui 
- * @license     https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ * @package   grade_frubric
+ * @copyright 2023 Michael Vangelovski
+ * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-
 
 /**
  * Grunt configuration
@@ -32,9 +28,6 @@
 module.exports = function (grunt) {
     var path = require('path')
     cwd = process.env.PWD || process.cwd();
-
-    // Globbing pattern for matching all AMD JS source files.
-    //var amdSrc = ['amd/src/*.js' : '**/amd/src/*.js'];
 
     /**
      * Function to generate the destination for the uglify task
@@ -65,38 +58,25 @@ module.exports = function (grunt) {
                 options: { report: 'min' }
             }
         },
-        less: {
-            development: {
-                options: {
-                    compress: false // We must not compress to keep the comments.
-                },
-                files: {
-                    "reportpsgrading.css": "less/reportpsgrading.less",
-                }
-            }
-        },
         watch: {
-            styles: {
-                files: ['less/*.less'], // which files to watch
-                tasks: ['less'],
-                options: {
-                    nospawn: true
-                }
-            },
             amd: {
                 files: ['**/amd/src/**/*.js'],
-                tasks: ['uglify']
+                tasks: ['uglify'],
+                // options: {
+                //     spawn: false,
+                //     event: ['changed', 'added', 'deleted'],
+                // }
             }
         }
+
     });
 
     // Register NPM tasks.
     grunt.loadNpmTasks('grunt-contrib-uglify');
-    grunt.loadNpmTasks('grunt-contrib-less');
     grunt.loadNpmTasks('grunt-contrib-watch');
 
 
-    // Register CSS taks.
-    grunt.registerTask('default', ['less', 'uglify', 'watch']);
+    // Register JS tasks.
+    grunt.registerTask('default', ['uglify', 'watch']);
 
 };

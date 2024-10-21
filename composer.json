@@ -1,0 +1,13 @@
+{
+    "name": "report_psgrading_downloader/report_psgrading_downloader",
+    "description": "A custom report plugin for Moodle",
+    "type": "moodle-plugin",
+    "autoload": {
+        "psr-4": {
+            "report_psgrading_downloader\\": "classes/"
+        }
+    },
+    "require": {
+        "dompdf/dompdf": "^3.0"
+    }
+}

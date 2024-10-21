@@ -1,29 +1,17 @@
 {
-  "name": "report_psgrading_downloader",
-  "private": true,
-  "description": "Downloader for the  Grading system for CGS Primary",
-  "devDependencies": {
-    "grunt": "^1.1.0",
-    "grunt-contrib-less": "^2.0.0",
-    "grunt-contrib-uglify": "^4.0.1"
-  },
-  "engines": {
-    "node": ">=20.11.0 <21"
-  },
-  "version": "1.0.0",
-  "main": "Gruntfile.js",
-  "dependencies": {
-    "gridjs": "^6.2.0",
-    "grunt-contrib-watch": "^1.1.0"
-  },
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/cgs-ets/moodle-report_psgrading_downloader.git"
-  },
-  "author": "Veronica Bermegui",
-  "license": "ISC",
-  "homepage": "https://github.com/cgs-ets/moodle-report_psgrading_downloader.git#readme"
+    "name": "psgrading_downloader",
+    "version": "1.0.0",
+    "description": "A Moodle plugin for downloading PS grading data.",
+    "scripts": {
+        "build": "grunt",
+        "watch": "grunt watch"
+    },
+    "devDependencies": {
+        "grunt": "^1.6.1",
+        "grunt-babel": "^8.0.0",
+        "grunt-contrib-uglify": "^5.2.2",
+        "grunt-contrib-watch": "^1.1.0"
+    },
+    "author": "Veronica Bermegui",
+    "license": "GPL-3.0"
 }
