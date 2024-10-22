@@ -6,17 +6,6 @@ define(['core/ajax'], function (Ajax) {
         let usernames = [];
         let selectedActivities = JSON.parse(document.querySelector('.psgrading-downloader-table').getAttribute('data-activities-json'));;
         (new Controls(usernames, selectedActivities)).main();
-
-        // const doc = new jspdf.jsPDF();
-
-        // doc.html(document.body, {
-        //     callback: function (doc) {
-        //         doc.save();
-        //     },
-        //     x: 10,
-        //     y: 10
-        // });
-
     }
 
     function Controls(usernames, selectedActivities) {

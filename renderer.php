@@ -25,30 +25,36 @@ defined('MOODLE_INTERNAL') || die();
 use mod_psgrading\external\task_exporter;
 use mod_psgrading\utils;
 use report_psgrading_downloader\reportmanager;
-use \mod_psgrading\persistents\task;
+use mod_psgrading\persistents\task;
 
 class report_psgrading_downloader_renderer extends plugin_renderer_base {
 
-    public function render_selection($courseid, $activityids = [], $includeunpublished, $url) {
+    public function render_selection($courseid,  $includeunpublished, $url, $groups, $activityids) {
+
         $manager = new reportmanager();
-        // Get the students
-        $students = $manager->get_students_in_course($courseid);
-    
-        // Get the tasks for each activity
+
+        // Get the tasks for each activity.
         $tasks = $manager->get_activity_tasks($activityids, $includeunpublished);
+        $taskids = implode(',', array_keys($tasks));
 
-        // echo '<pre> TASKS';
-        // echo print_r($tasks, true);
-        // echo '</pre>'; exit;
-
+        // Get the students.
+        $students = $manager->get_students_in_course($courseid, $groups, $taskids);  // Filter by group.
         $psgradingjson = [];
 
-    
-        // Group tasks by activity
-        $tasksByActivity = [];
+        if (count($students) == 0) {
+            $message = get_string('notmatchedcriteria', 'report_psgrading_downloader');
+            $level = core\output\notification::NOTIFY_INFO;
+            \core\notification::add($message, $level);
+
+            return;
+        }
+
+        // Group tasks by activity.
+        $tasksbyactivity = [];
+
         foreach ($tasks as $task) {
-            $tasksByActivity[$task->activity_name][] = $task->taskname;
-            // Collect the details
+            $tasksbyactivity[$task->activity_name][] = $task->taskname;
+            // Collect the details.
             if (array_key_exists($task->activity_name, $psgradingjson)) {
                 $details = $psgradingjson[$task->activity_name];
                 array_push($details->taskids , $task->id);
@@ -62,38 +68,38 @@ class report_psgrading_downloader_renderer extends plugin_renderer_base {
             }
         }
 
-        // echo print_r($tasksByActivity, true);
-        // echo '</pre>'; exit;
         $psgradingjson = array_values($psgradingjson);
-    
-        // Format tasks for each activity
-        $formattedTasksByActivity = [];
-        foreach ($tasksByActivity as $activity => $taskNames) {
-            $formattedTasksByActivity[$activity] = implode("<br>", array_filter(array_map('trim', $taskNames)));
+
+        // Format tasks for each activity.
+        $formattedtasksbyactivity = [];
+
+        foreach ($tasksbyactivity as $activity => $tasknames) {
+            $formattedtasksbyactivity[$activity] = implode("<br>", array_filter(array_map('trim', $tasknames)));
         }
-        
+
         $allstudents = [];
+
         foreach ($students as $student) {
             $value = $student->username . '_'.  $student->id;
             $checkbox = '<input type="checkbox" name="select_student[]" value="' . $value . '">';
-            $profile_picture_url = $this->user_picture($student, array('size' => 50, 'link' => false));
-            $name_with_picture = $profile_picture_url . ' ' . $student->firstname . ' ' . $student->lastname;
+            $profilepictureurl = $this->user_picture($student, ['size' => 50, 'link' => false]);
+            $namewithpicture = $profilepictureurl . ' ' . $student->firstname . ' ' . $student->lastname;
             $allstudents[] = $student->username . '_'.  $student->id;
-    
-            // Create a row for each student with tasks grouped by activity
-            $taskColumns = [];
-            foreach ($formattedTasksByActivity as $activity => $tasks) {
-                $taskColumns[] = $tasks;
+
+            // Create a row for each student with tasks grouped by activity.
+            $taskcolumns = [];
+            foreach ($formattedtasksbyactivity as $activity => $tasks) {
+                $taskcolumns[] = $tasks;
             }
-    
-            $row = array_merge([$checkbox, $name_with_picture], $taskColumns);
+
+            $row = array_merge([$checkbox, $namewithpicture], $taskcolumns);
             $dataaux['rows'][] = $row;
         }
-    
+
         $selectall = '<input type="checkbox" name="select_all" value="all" title ="Select all">';
 
-        $headers = array_merge([$selectall, 'Name'], array_keys($formattedTasksByActivity));
-    
+        $headers = array_merge([$selectall, 'Name'], array_keys($formattedtasksbyactivity));
+
         $data = [
             'headers' => $headers,
             'action' => $url,
@@ -102,31 +108,26 @@ class report_psgrading_downloader_renderer extends plugin_renderer_base {
             }, $dataaux['rows']),
             'psgradingjson' => json_encode($psgradingjson),
             'allstudents' => json_encode($allstudents),
-            'id' => $courseid
+            'id' => $courseid,
         ];
 
-        // echo '<pre>';
-        // echo print_r($data, true);
-        // echo '</pre>'; exit;
-    
         $template = $this->render_from_template('report_psgrading_downloader/main', $data);
-    
-        // Output the rendered template
+
+        // Output the rendered template.
         echo $template;
     }
-    
 
-    // Get a task context details. 
-    //Based on get_other_values from  mod\psgrading\classes\external\details_exporter.php
+
+    // Get a task context details.
+    // Based on get_other_values from  mod\psgrading\classes\external\details_exporter.php
     public function task_details($taskid, $studentid, $username, $activity) {
         global $CFG;
-    
-        $task = new Task($taskid);
-        $taskexporter = new task_exporter($task, array('userid' => $username)); // userid? username userid in synergetic
-        $task = $taskexporter->export($this);
 
+        $task = new Task($taskid);
+        $taskexporter = new task_exporter($task, ['userid' => $username]); // userid? username userid in synergetic
+        $task = $taskexporter->export($this);
         $student = \core_user::get_user($studentid);
-    
+
         utils::load_user_display_info($student);
 
         // Get existing marking values for this user and incorporate into task criterion data.
@@ -134,7 +135,7 @@ class report_psgrading_downloader_renderer extends plugin_renderer_base {
 
         // Load task criterions.
         $task->criterions = task::get_criterions($task->id);
-    
+
         foreach ($task->criterions as $i => $criterion) {
             if ($criterion->hidden) {
                 unset($task->criterions[$i]);
@@ -146,7 +147,7 @@ class report_psgrading_downloader_renderer extends plugin_renderer_base {
                 $criterion->{'level' . $gradeinfo->criterions[$criterion->id]->gradelevel . 'selected'} = true;
             }
         }
-    
+
         // TODO: comment the engagement section until you get the OK for the new format
         // Zero indexes so templates work.
         $task->criterions = array_values($task->criterions);
@@ -164,16 +165,16 @@ class report_psgrading_downloader_renderer extends plugin_renderer_base {
                 $engagement->{'level' . $gradeinfo->engagements[$engagement->id]->gradelevel . 'selected'} = true;
             }
         }
- 
+
         // Zero indexes so templates work.
         $task->engagements = array_values($task->engagements);
 
-
         if ($task->released && !utils::is_hide_ps_grades()) {
             // Get selected MyConnect grade evidences.
-            $task->myconnectevidences = array();
+            $task->myconnectevidences = [];
             $task->myconnectevidencejson = '';
-            $myconnectids = array();
+            $myconnectids = [];
+
             if ($gradeinfo) {
                 // Get selected ids
                 $myconnectids = task::get_myconnect_grade_evidences($gradeinfo->id);
@@ -197,11 +198,11 @@ class report_psgrading_downloader_renderer extends plugin_renderer_base {
                 foreach ($files as $file) {
                     $filename = $file->get_filename();
                     $path = file_encode_url($CFG->wwwroot.'/pluginfile.php', '/'.$modulecontext->id.'/mod_psgrading/evidences/'.$uniqueid.'/'.$filename);
-                    $task->evidences[] = array(
+                    $task->evidences[] = [
                         'icon' => $path . '?preview=thumb',
                         'url' => $path,
                         'name' => $filename,
-                    );
+                    ];
                 }
             }
         } else {
@@ -215,35 +216,30 @@ class report_psgrading_downloader_renderer extends plugin_renderer_base {
         $stylesheet .= file_get_contents($CFG->wwwroot . '/report/psgrading_downloader/styles.css');
         $stylesheet .= file_get_contents($CFG->wwwroot . '/report/psgrading_downloader/bootstrap.min.css');
 
-        error_log(print_r($stylesheet, true));
-        return array(
+        return [
             'task' => $task,
             'activityname' => $activity->activity_name,
-            'student' =>$student,
+            'student' => $student,
             'gradeinfo' => $gradeinfo,
             'isstaff' => false,
-            'stylesheet'=> $stylesheet
-        );
-
-
+            'stylesheet' => $stylesheet,
+        ];
 
     }
     /**
      * get all the tasks templates for a student and
      * Remove repeated student name and activity name.
      * Only leave the values for the first page.
-     * 
+     *
      */
     public function sanitisetemplate(&$templates) {
 
-        $headerPattern = '/<!-- SELECTED STUDENT HEADER START -->.*?<!-- SELECTED STUDENT HEADER END-->/s';
-        
+        $headerpattern = '/<!-- SELECTED STUDENT HEADER START -->.*?<!-- SELECTED STUDENT HEADER END-->/s';
+
         for($i = 1; $i < count($templates); $i++) {
-            $templates[$i] = preg_replace($headerPattern, '', $templates[$i]);
+            $templates[$i] = preg_replace($headerpattern, '', $templates[$i]);
         }
 
     }
 
-
-    
 }

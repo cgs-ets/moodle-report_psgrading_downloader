@@ -19,18 +19,21 @@
  *
  * @package     report_psgrading_downloader
  * @category    string
- * @copyright   2024 Veronica Bermegui 
+ * @copyright   2024 Veronica Bermegui
  * @license     https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
 defined('MOODLE_INTERNAL') || die();
 
-$string['pluginname']                    = 'PS Grading downloader';
 $string['all']                           = 'All';
-$string['filter']                        = 'Filter';
-$string['cancel']                        = 'Cancel';
-$string['allpsgactivities']              = 'Choose one or more PS grading activities';
 $string['allgroups']                     = 'Choose one or groups to filter';
+$string['allpsgactivities']              = 'Choose one or more PS grading activities';
+$string['cancel']                        = 'Cancel';
+$string['cantdisplayerror']              = 'This report is only functional in  courses.';
 $string['download']                      = 'Download report(s)';
+$string['filter']                        = 'Filter';
 $string['includeunreleased']             = 'Include tasks for which feedback has not been released.';
 $string['includeunreleased_help']        = 'If checked, all tasks related to the activity will be printed';
+$string['notmatchedcriteria']            = 'No students matched the filter criteria';
+$string['pluginname']                    = 'PS Grading downloader';
+

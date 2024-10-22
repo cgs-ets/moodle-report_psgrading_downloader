@@ -18,8 +18,7 @@
  * Plugin administration pages are defined here.
  *
  * @package     report_psgrading_downloader
- 
- * @copyright   2024 Veronica Bermegui 
+ * @copyright   2024 Veronica Bermegui
  * @license     https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 

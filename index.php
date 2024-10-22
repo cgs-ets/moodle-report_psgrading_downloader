@@ -17,7 +17,7 @@
 /**
  * A report to display  assignments files and allow to  download
  *
- * @package    report
+ * @package    report_psgrading_downloader
  * @subpackage psgrading_downloader
  * @copyright  2024 Veronica Bermegui
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
@@ -34,19 +34,19 @@ $selectedusers           = optional_param('selectedusers', '', PARAM_TEXT);
 
 $manager                 = new report_psgrading_downloader\reportmanager();
 
-// Download
+// Download.
 
 if ($selectedusers != '') {
-   
+
     $manager->download_reports($selectedactivities, $selectedusers, $id);
 }
 
-$url = new moodle_url('/report/psgrading_downloader/index.php', array('id' => $id /*, 'cmid' => $cmid*/));
+$url = new moodle_url('/report/psgrading_downloader/index.php', ['id' => $id /*, 'cmid' => $cmid*/]);
 $PAGE->set_url($url);
 $PAGE->set_pagelayout('admin');
 $PAGE->add_body_class('report_psgrading_downloader');
 
-if (!$course = $DB->get_record('course', array('id' => $id))) {
+if (!$course = $DB->get_record('course', ['id' => $id])) {
     $message = get_string('invalidcourse', 'report_assignfeedback_download');
     $level = core\output\notification::NOTIFY_ERROR;
     \core\notification::add($message, $level);
@@ -56,26 +56,25 @@ require_login($course);
 $context = context_course::instance($course->id);
 require_capability('mod/psgrading:addinstance', $context);
 
-$PAGE->set_title(format_string($course->shortname, true, array('context' => $context)));
-$PAGE->set_heading(format_string($course->fullname, true, array('context' => $context)));
-
-// Add css.
-// $PAGE->requires->css(new moodle_url($CFG->wwwroot . '/mod/psgrading/psgrading.css', array('nocache' => rand())));
-
+$PAGE->set_title(format_string($course->shortname, true, ['context' => $context]));
+$PAGE->set_heading(format_string($course->fullname, true, ['context' => $context]));
 
 echo $OUTPUT->header();
 
 $psids = $manager->get_psgrading_activities($id);
-$mform =  new psgrading_downloader_form(null, ['id'=>$id, 'cmid' => $cmid, 'psids' => $psids]);
+$groups = $manager->get_groups_in_course($id);
+$mform = new psgrading_downloader_form(null, ['id' => $id, 'cmid' => $cmid, 'psids' => $psids, 'groups' => $groups]);
 $filter = false;
 $activityids = '';
 
 // Form processing and displaying is done here.
 if ($data = $mform->get_data()) {
     // In this case you process validated data. $mform->get_data() returns data posted in form.
-    $activityids = $data->psgradinactivities; // Get the selected assessments.
+    $activityids        = in_array(0, $data->psgradinactivities) ? explode(',', $data->allcmids) : $data->psgradinactivities;
     $includeunpublished = $data->includeunreleased;
-    $filter        = true;
+    $groups             = $data->filterbygroup;
+    $filter             = true;
+
 } else {
     if (count($psids) == 0) {
         $noasses = 1;
@@ -100,8 +99,7 @@ if ($id == 0 || $id == 1) {  // 1 is the main page.
     if ($filter) {
         $url            = $PAGE->url;
         $coursename     = $DB->get_field('course', 'fullname', ['id' => $id], $strictness = IGNORE_MISSING);
-        
-        echo $renderer->render_selection($id, $activityids, $includeunpublished, $url);
+        echo $renderer->render_selection($id, $includeunpublished, $url, $groups, $activityids);
     }
 
     echo $OUTPUT->box_end();

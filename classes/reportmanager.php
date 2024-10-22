@@ -17,39 +17,37 @@
 /**
  *
  * @package     report_psgrading_downloader
- * @category    reportmanager
  * @copyright   2024 Veronica Bermegui
  * @license     https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
 namespace report_psgrading_downloader;
 
-use TCPDF;
 
 use Dompdf\Dompdf;
 use Dompdf\Options;
-use mod_psgrading\external\task_exporter;
-use mod_psgrading\persistents\task;
-use stdClass;
-
-require_once($CFG->libdir . '/tcpdf/tcpdf.php');
-require 'vendor\autoload.php';
-
 
 defined('MOODLE_INTERNAL') || die();
 
-global $CFG;
+require_once($CFG->libdir . '/tcpdf/tcpdf.php');
+require('vendor\autoload.php');
 
+global $CFG;
+/**
+ * Undocumented class
+ */
 class reportmanager {
 
-      /**
+    /**
+     * Undocumented function
      *
-     * @courseid course id
+     * @param mixed $courseid
+     * @return void
      */
     public function get_psgrading_activities($courseid) {
         global $DB;
 
-        $sql = "SELECT pg.name,
+        $sql = "SELECT DISTINCT pg.name,
                 pg.id AS psgradingid,
                 pg.course AS course,
                 pg.timecreated AS timecreated,
@@ -57,39 +55,89 @@ class reportmanager {
                 cm.id AS cmid
                 FROM {psgrading} pg
                 JOIN {course_modules} cm ON pg.id = cm.instance
-                WHERE pg.course = ?
+                JOIN {psgrading_tasks} pt ON pt.cmid = cm.id
+                JOIN {psgrading_task_criterions} ptc ON ptc.taskid = pt.id
+                WHERE pg.course = :courseid
                 AND cm.module = (SELECT id FROM {modules} WHERE name = 'psgrading')
-                ORDER BY pg.name";
+                AND ptc.description IS NOT NULL AND ptc.description <> ''
+                AND ptc.level4 IS NOT NULL AND ptc.level4 <> ''
+                AND ptc.level3 IS NOT NULL AND ptc.level3 <> ''
+                AND ptc.level2 IS NOT NULL AND ptc.level2 <> ''
+                AND ptc.subject IS NOT NULL AND ptc.subject <> ''
+                ORDER BY pg.name; ";
 
-        $params = ['course' => $courseid];
+        $params = ['courseid' => $courseid];
 
         $results = $DB->get_records_sql($sql, $params);
 
         return $results;
     }
 
+    /**
+     * Filter the students in the course that have at least one graded task (from the selected tasks).
+     *
+     * @param mixed $courseid
+     * @param mixed $groups
+     * @param mixed $taskids
+     * @return void
+     */
+    public function get_students_in_course($courseid, $groups, $taskids) {
 
-    public function get_students_in_course($courseid) {
         global $DB;
 
-        $sql = "SELECT u.id , u.firstname, u.lastname, u.email, u.username
-                FROM {user} u
-                JOIN {user_enrolments} ue ON u.id = ue.userid
-                JOIN {enrol} e ON ue.enrolid = e.id
-                JOIN {role_assignments} ra ON ra.userid = u.id
-                JOIN {context} ct ON ra.contextid = ct.id
-                JOIN {course} c ON c.id = e.courseid
-                JOIN {role} r ON ra.roleid = r.id
-                WHERE c.id = :courseid;";
-
-        $params = ['courseid' => $courseid];
+        if (count($groups) === 1 && $groups[0] == 0) {
+            // Get all students in the course.
+            $sql = "SELECT u.id, u.firstname, u.lastname, u.email, u.username
+                    FROM {user} u
+                    JOIN {user_enrolments} ue ON u.id = ue.userid
+                    JOIN {enrol} e ON ue.enrolid = e.id
+                    JOIN {role_assignments} ra ON ra.userid = u.id
+                    JOIN {context} ct ON ra.contextid = ct.id
+                    JOIN {course} c ON c.id = e.courseid
+                    JOIN {role} r ON ra.roleid = r.id
+                    JOIN {psgrading_grades} pg ON pg.studentusername = u.username
+                    WHERE c.id = :courseid
+                    AND r.shortname = :shortname
+                    AND ct.contextlevel = :contextlevel
+                    AND ct.instanceid = c.id
+                    AND pg.taskid in ($taskids)
+                    ORDER BY u.lastname";
+            $params = ['courseid' => $courseid, 'shortname' => 'student', 'contextlevel' => CONTEXT_COURSE];
+        } else {
+            // Get students in specific groups.
+            list($insql, $inparams) = $DB->get_in_or_equal($groups, SQL_PARAMS_NAMED, 'groupid');
+            $sql = "SELECT u.id, u.firstname, u.lastname, u.email, u.username
+                    FROM {user} u
+                    JOIN {user_enrolments} ue ON u.id = ue.userid
+                    JOIN {enrol} e ON ue.enrolid = e.id
+                    JOIN {role_assignments} ra ON ra.userid = u.id
+                    JOIN {context} ct ON ra.contextid = ct.id
+                    JOIN {course} c ON c.id = e.courseid
+                    JOIN {role} r ON ra.roleid = r.id
+                    JOIN {groups_members} gm ON gm.userid = u.id
+                    JOIN {psgrading_grades} pg ON pg.studentusername = u.username
+                    WHERE c.id = :courseid
+                    AND r.shortname = :shortname
+                    AND ct.contextlevel = :contextlevel
+                    AND ct.instanceid = c.id
+                    AND pg.taskid in ($taskids)
+                    AND gm.groupid $insql
+                    ";
+            $params = array_merge(['courseid' => $courseid, 'shortname' => 'student', 'contextlevel' => CONTEXT_COURSE], $inparams);
+        }
 
         $students = $DB->get_records_sql($sql, $params);
-
 
         return $students;
     }
 
+    /**
+     * Undocumented function
+     *
+     * @param mixed $activityid
+     * @param mixed $includeunpublished
+     * @return void
+     */
     public function get_activity_tasks($activityid, $includeunpublished) {
         global $DB;
         $ids = implode(',', $activityid);
@@ -101,7 +149,6 @@ class reportmanager {
                 WHERE cm.id IN ($ids)
                 AND cm.module = (SELECT id FROM {modules} WHERE name = 'psgrading')
                 AND t.deleted = 0";
-
 
         if (!$includeunpublished) {
             $sql .= " AND t.published = 1";
@@ -115,18 +162,49 @@ class reportmanager {
 
     }
 
+     /**
+      * Get all groups in the course.
+      *
+      * @param mixed $courseid
+      * @return void
+      */
+    public function get_groups_in_course($courseid) {
 
+        $groups = groups_get_all_groups($courseid);
+
+        $groupswithstudents = [];
+
+        foreach ($groups as $group) {
+            $members = groups_get_members($group->id, 'u.id');
+            if (!empty($members)) {
+                $groupswithstudents[$group->id] = $group;
+            }
+        }
+
+        return $groupswithstudents;
+
+    }
+
+    /**
+     * Undocumented function
+     *
+     * @param mixed $activities
+     * @param mixed $selectedstudents
+     * @param mixed $courseid
+     * @return void
+     */
     public function download_reports($activities, $selectedstudents, $courseid) {
-        global $DB, $CFG, $OUTPUT, $PAGE;
+        global $PAGE;
+
         // Increase the server timeout to handle the creation and sending of large zip files.
         \core_php_time_limit::raise();
 
-        // Remove brackets and quotes from the string
+        // Remove brackets and quotes from the string.
         $selectedstudents = explode(',', str_replace(['[', ']', '"'], '', $selectedstudents));
 
         $studentidusername = [];
 
-        // Loop through each item and split into username and userid
+        // Loop through each item and split into username and userid.
         foreach ($selectedstudents as $student) {
             list($username, $userid) = explode('_', trim($student));
             $studentidusername[$username] = intval($userid);
@@ -135,37 +213,48 @@ class reportmanager {
         $activities = json_decode($activities);
         $grouptasksbyactivity = [];
         $studentnames = [];
+        $activitynames = [];
+
         $output = $PAGE->get_renderer('report_psgrading_downloader');
 
-        foreach($activities as $activity) {
-            foreach($activity->taskids as $taskid) {
-                foreach($studentidusername as $username => $studentid) {
+        foreach ($activities as $activity) {
+            $activitynames[$activity->cmid] = trim($activity->activity_name);
+            foreach ($activity->taskids as $taskid) {
+                foreach ($studentidusername as $username => $studentid) {
                     $data = $output->task_details($taskid, $studentid, $username, $activity);
                     $studentnames[$studentid] = $data['student'];
-                    $grouptasksbyactivity[$activity->cmid][$studentid][] = $output->render_from_template('report_psgrading_downloader/report_template', $data);
+                    $template = 'report_psgrading_downloader/report_template';
+                    $grouptasksbyactivity[$activity->cmid][$studentid][] = $output->render_from_template($template, $data);
                 }
 
             }
         }
 
-
-        list($pdfs, $tempDir) = $this->generate_pdf($grouptasksbyactivity, $studentnames);
-        $this->save_generated_reports($pdfs, $courseid, $tempDir);
-
+        list($pdfs, $tempdir) = $this->generate_pdf($grouptasksbyactivity, $studentnames, $activitynames);
+        $this->save_generated_reports($pdfs, $courseid, $tempdir);
 
     }
 
-    private function generate_pdf($studenttasktemplates, $studentnames) {
+    /**
+     * Undocumented function
+     *
+     * @param mixed $studenttasktemplates
+     * @param mixed $studentnames
+     * @param mixed $activitynames
+     * @return void
+     */
+    private function generate_pdf($studenttasktemplates, $studentnames, $activitynames) {
         global $PAGE;
+
         $options = new Options();
-        $options->set('isRemoteEnabled', true); // To be able to display the profile image
+        $options->set('isRemoteEnabled', true); // To be able to display the profile image.
         $pdfs = [];
 
-        $tempDir = make_temp_directory('report_psgrading_downloader');
+        $tempdir = make_temp_directory('report_psgrading_downloader');
         $renderer = $PAGE->get_renderer('report_psgrading_downloader');
 
-        foreach($studenttasktemplates as $cmid => $module) {
-            foreach($module as $studentid => $studenttemplates) {
+        foreach ($studenttasktemplates as $cmid => $module) {
+            foreach ($module as $studentid => $studenttemplates) {
                 $renderer->sanitisetemplate($studenttemplates);
                 $tasks = implode($studenttemplates);
                 $dompdf = new Dompdf($options);
@@ -173,61 +262,58 @@ class reportmanager {
                 $dompdf->setPaper('a0', 'landscape');
                 $dompdf->render();
                 $output = $dompdf->output();
-
-                $filename = str_replace(' ', '_', $studentnames[$studentid]->fullname) . '.pdf';
-                // In case there is a student with the same name
-                if (array_key_exists($filename, $pdfs)) {
-                    $r = strval(rand());
-                    $filename = str_replace(' ', '_', $studentnames[$studentid]->fullname) . '_'. $r .'.pdf';
-                }
-
-                // Save the PDF to a temporary file
-                $tempFilePath = $tempDir . '/' . $filename;
-                file_put_contents($tempFilePath, $output);
-
-                $pdfs[$filename] = $tempFilePath;
+                // Add the activity name as part of the name.
+                $filename = str_replace(' ', '_', $studentnames[$studentid]->fullname . '_' .$activitynames[$cmid]) .'.pdf';
+                // Save the PDF to a temporary file.
+                $tempfilepath = $tempdir . '/' . $filename;
+                file_put_contents($tempfilepath, $output);
+                $pdfs[$filename] = $tempfilepath;
 
             }
         }
 
-        return [$pdfs, $tempDir];
-
+        return [$pdfs, $tempdir];
     }
 
-    private function save_generated_reports($pdfs, $courseid, $tempDir) {
+    /**
+     * Undocumented function
+     *
+     * @param mixed $pdfs
+     * @param mixed $courseid
+     * @param mixed $tempdir
+     * @return void
+     */
+    private function save_generated_reports($pdfs, $courseid, $tempdir) {
         global $DB;
-        $coursename = $DB->get_field('course', 'fullname', array('id' => $courseid));
+
+        $coursename = $DB->get_field('course', 'fullname', ['id' => $courseid]);
         $dirname = clean_filename($coursename . '.zip'); // Main folder.
-        // echo '<pre>';
-        // echo  'pdfs '. print_r($pdfs, true);
-        // echo '</pre>';  exit;
-        // Use the provided tempDir for the zip file
-        $zipFilePath = $tempDir . '/' . $dirname;
+        $zipfilepath = $tempdir . '/' . $dirname;
 
         // Create the zip.
         $zipfile = new \zip_archive();
-        @unlink($zipFilePath);
-        $zipfile->open($zipFilePath);
+        @unlink($zipfilepath);
+        $zipfile->open($zipfilepath);
 
-        foreach ($pdfs as $filename => $tempFilePath) {
-            $zipfile->add_file_from_pathname($filename, $tempFilePath);
+        foreach ($pdfs as $filename => $tempfilepath) {
+            $zipfile->add_file_from_pathname($filename, $tempfilepath);
         }
 
         $zipfile->close();
 
         header("Content-Type: application/zip");
         header("Content-Disposition: attachment; filename=$dirname");
-        header("Content-Length: " . filesize($zipFilePath));
-        readfile($zipFilePath);
-        unlink($zipFilePath);
+        header("Content-Length: " . filesize($zipfilepath));
+        readfile($zipfilepath);
+        unlink($zipfilepath);
 
-        // Clean up temporary files
-        foreach ($pdfs as $tempFilePath) {
-            unlink($tempFilePath);
+        // Clean up temporary files.
+        foreach ($pdfs as $tempfilepath) {
+            unlink($tempfilepath);
         }
 
-        // Remove the temporary directory
-        // remove_dir($tempDir);
+        // Remove the temporary directory.
+        remove_dir($tempdir);
 
         die(); // If not set, an invalid zip file error is thrown.
     }
