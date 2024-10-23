@@ -226,6 +226,25 @@ select#id_filterbygroup {
     font-weight: 600;
 }
 
+.details-evidences table {
+    border: 1px solid #ccc;
+    max-width: 500px;
+    background: #fff;
+}
+
+.body {
+    overflow: hidden;
+}
+
+.generaltable th, .generaltable td {
+    padding: .75rem;
+    vertical-align: top;
+    border-top: 1px solid #dee2e6;
+}
+
+.generaltable tbody tr:nth-of-type(odd) {
+    background-color: rgba(0, 0, 0, .03);
+}
 
 /* Add this to remove bullet points */
 ul.tbl-th,
@@ -233,4 +252,21 @@ ul.tbl-tr {
     list-style: none;
     margin: 0;
     padding: 0;
+}
+
+/* To make the table evidence in the DOMPDF render properly*/
+.details-evidences .table {
+    width: 100%;
+    table-layout: fixed;
+    border-collapse: collapse;
+}
+
+.details-evidences .cell {
+    width: 50%;
+    word-wrap: break-word;
+}
+
+.details-evidences .icon {
+    width: 20px;
+    height: 20px;
 }

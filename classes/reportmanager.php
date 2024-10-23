@@ -273,7 +273,7 @@ class reportmanager {
                 
                 $dompdf = new Dompdf($options);
                 $dompdf->loadHtml($tasks);
-                $dompdf->setPaper('a3', 'landscape');
+                $dompdf->setPaper('a2', 'landscape');
                 $dompdf->render();
                 
                 $output = $dompdf->output();
