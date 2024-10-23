@@ -78,7 +78,7 @@ class report_psgrading_downloader_renderer extends plugin_renderer_base {
         }
 
         $allstudents = [];
-
+      
         foreach ($students as $student) {
             $value = $student->username . '_'.  $student->id;
             $checkbox = '<input type="checkbox" name="select_student[]" value="' . $value . '">';
@@ -129,10 +129,10 @@ class report_psgrading_downloader_renderer extends plugin_renderer_base {
         $student = \core_user::get_user($studentid);
 
         utils::load_user_display_info($student);
-
+       
         // Get existing marking values for this user and incorporate into task criterion data.
-        $gradeinfo = task::get_task_user_gradeinfo($task->id, $username);
-
+        $gradeinfo = task::get_task_user_gradeinfo($task->id, $studentid);
+      
         // Load task criterions.
         $task->criterions = task::get_criterions($task->id);
 
@@ -152,22 +152,22 @@ class report_psgrading_downloader_renderer extends plugin_renderer_base {
         // Zero indexes so templates work.
         $task->criterions = array_values($task->criterions);
 
-         // Load task engagements.
-        $task->engagements = task::get_engagement($task->id);
-        foreach ($task->engagements as $i => $engagement) {
-            if ($engagement->hidden) {
-                unset($task->engagements[$i]);
-                continue;
-            }
-            // Add selections only if task is released. And not hidden from student.
-            if (isset($gradeinfo->engagements[$engagement->id]) && $task->released && !utils::is_hide_ps_grades()) {
-                // There is a gradelevel chosen for this engagement.
-                $engagement->{'level' . $gradeinfo->engagements[$engagement->id]->gradelevel . 'selected'} = true;
-            }
-        }
+        // Load task engagements.
+        // $task->engagements = task::get_engagement($task->id);
+        // foreach ($task->engagements as $i => $engagement) {
+        //     if ($engagement->hidden) {
+        //         unset($task->engagements[$i]);
+        //         continue;
+        //     }
+        //     // Add selections only if task is released. And not hidden from student.
+        //     if (isset($gradeinfo->engagements[$engagement->id]) && $task->released && !utils::is_hide_ps_grades()) {
+        //         // There is a gradelevel chosen for this engagement.
+        //         $engagement->{'level' . $gradeinfo->engagements[$engagement->id]->gradelevel . 'selected'} = true;
+        //     }
+        // }
 
-        // Zero indexes so templates work.
-        $task->engagements = array_values($task->engagements);
+        // // Zero indexes so templates work.
+        // $task->engagements = array_values($task->engagements);
 
         if ($task->released && !utils::is_hide_ps_grades()) {
             // Get selected MyConnect grade evidences.
@@ -211,10 +211,11 @@ class report_psgrading_downloader_renderer extends plugin_renderer_base {
             unset($gradeinfo->engagementlang);
             unset($gradeinfo->comment);
         }
-
+        /**
+         * The bootstrap css must be added in the report_template.mustache for DOMPdf to pick it up.
+         */
         $stylesheet  = '';
         $stylesheet .= file_get_contents($CFG->wwwroot . '/report/psgrading_downloader/styles.css');
-        $stylesheet .= file_get_contents($CFG->wwwroot . '/report/psgrading_downloader/bootstrap.min.css');
 
         return [
             'task' => $task,
@@ -227,7 +228,7 @@ class report_psgrading_downloader_renderer extends plugin_renderer_base {
 
     }
     /**
-     * get all the tasks templates for a student and
+     * Get all the tasks templates for a student and
      * Remove repeated student name and activity name.
      * Only leave the values for the first page.
      *

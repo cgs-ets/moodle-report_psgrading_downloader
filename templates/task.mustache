@@ -2,7 +2,7 @@
       <!-- SELECTED STUDENT HEADER START --> <div class="psgrading-header">  
         <h1 class = 'activitynameheader'> {{activityname}} </h1> 
         <div class="selected-student" data-userid="{{student.id}}">
-            <img src="{{student.profilephoto}}" class="round" /> <a href="{{student.overviewurl}}"><span class="name">{{student.fullname}}</span></a>
+         <a href="{{student.overviewurl}}"><span class="name">{{student.fullname}}</span></a>
         </div>
     </div> <!-- SELECTED STUDENT HEADER END-->
   
@@ -24,13 +24,13 @@
                     <br>
                      <strong>{{ gradeinfo.engagementlang}} </strong>
                      <br><br>
-                    {{>mod_psgrading/details_engagement}}
+                    {{! >mod_psgrading/details_engagement}}
                 </div>
             {{/gradeinfo.engagement}}
             {{>mod_psgrading/details_evidence}}
         {{/gradeinfo.didnotsubmit}}
         <div class="details-comment">
-            <div class="heading">{{#str}}mark:comment, mod_psgrading{{/str}}</div>
+            <div class="heading">{{#str}}comment, report_psgrading_downloader{{/str}}</div>
             {{{gradeinfo.comment}}}
         </div>
     </div>

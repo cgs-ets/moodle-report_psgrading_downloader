@@ -36,4 +36,7 @@ $string['includeunreleased']             = 'Include tasks for which feedback has
 $string['includeunreleased_help']        = 'If checked, all tasks related to the activity will be printed';
 $string['notmatchedcriteria']            = 'No students matched the filter criteria';
 $string['pluginname']                    = 'PS Grading downloader';
+$string['comment']                       = 'Comments';
+$string['nopsgradingactivities']         = 'There are no PS grading activities in this course';
+
 

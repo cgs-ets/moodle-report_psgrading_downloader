@@ -63,7 +63,7 @@ echo $OUTPUT->header();
 
 $psids = $manager->get_psgrading_activities($id);
 $groups = $manager->get_groups_in_course($id);
-$mform = new psgrading_downloader_form(null, ['id' => $id, 'cmid' => $cmid, 'psids' => $psids, 'groups' => $groups]);
+$mform = new psgrading_downloader_form(null, ['id' => $id, /*'cmid' => $cmid, */'psids' => $psids, 'groups' => $groups]);
 $filter = false;
 $activityids = '';
 
@@ -76,8 +76,8 @@ if ($data = $mform->get_data()) {
     $filter             = true;
 
 } else {
-    if (count($psids) == 0) {
-        $noasses = 1;
+    if ($activityids == '') {
+     //   $noactivities = 1;
     }
 }
 
@@ -89,8 +89,10 @@ if ($id == 0 || $id == 1) {  // 1 is the main page.
     echo $OUTPUT->box_start();
     $renderer = $PAGE->get_renderer('report_psgrading_downloader');
 
-    if ($noasses) {
-        // echo $renderer->render_no_assessment_in_course();
+    if ($noactivities) {
+        $message = get_string('nopsgradingactivities', 'report_assignfeedback_download');
+        $level   = core\output\notification::NOTIFY_INFO;
+        \core\notification::add($message, $level);
     } else {
         $mform->display();
     }

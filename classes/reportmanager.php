@@ -29,6 +29,7 @@ use Dompdf\Options;
 
 defined('MOODLE_INTERNAL') || die();
 
+require_once('../../config.php');
 require_once($CFG->libdir . '/tcpdf/tcpdf.php');
 require('vendor\autoload.php');
 
@@ -82,12 +83,15 @@ class reportmanager {
      * @return void
      */
     public function get_students_in_course($courseid, $groups, $taskids) {
-
         global $DB;
-
+    
+        // Get the required user fields including the picture field.
+        $userfieldsapi = \core_user\fields::for_userpic();
+        $userfields = $userfieldsapi->get_sql('u', false, '', '', false)->selects;
+        $userfields .= ', u.username';
         if (count($groups) === 1 && $groups[0] == 0) {
             // Get all students in the course.
-            $sql = "SELECT u.id, u.firstname, u.lastname, u.email, u.username
+            $sql = "SELECT DISTINCT $userfields
                     FROM {user} u
                     JOIN {user_enrolments} ue ON u.id = ue.userid
                     JOIN {enrol} e ON ue.enrolid = e.id
@@ -100,13 +104,13 @@ class reportmanager {
                     AND r.shortname = :shortname
                     AND ct.contextlevel = :contextlevel
                     AND ct.instanceid = c.id
-                    AND pg.taskid in ($taskids)
+                    AND pg.taskid IN ($taskids)
                     ORDER BY u.lastname";
             $params = ['courseid' => $courseid, 'shortname' => 'student', 'contextlevel' => CONTEXT_COURSE];
         } else {
             // Get students in specific groups.
             list($insql, $inparams) = $DB->get_in_or_equal($groups, SQL_PARAMS_NAMED, 'groupid');
-            $sql = "SELECT u.id, u.firstname, u.lastname, u.email, u.username
+            $sql = "SELECT DISTINCT $userfields
                     FROM {user} u
                     JOIN {user_enrolments} ue ON u.id = ue.userid
                     JOIN {enrol} e ON ue.enrolid = e.id
@@ -120,16 +124,16 @@ class reportmanager {
                     AND r.shortname = :shortname
                     AND ct.contextlevel = :contextlevel
                     AND ct.instanceid = c.id
-                    AND pg.taskid in ($taskids)
-                    AND gm.groupid $insql
-                    ";
+                    AND pg.taskid IN ($taskids)
+                    AND gm.groupid $insql";
             $params = array_merge(['courseid' => $courseid, 'shortname' => 'student', 'contextlevel' => CONTEXT_COURSE], $inparams);
         }
-
+    
         $students = $DB->get_records_sql($sql, $params);
-
+    
         return $students;
     }
+    
 
     /**
      * Undocumented function
@@ -215,6 +219,8 @@ class reportmanager {
         $studentnames = [];
         $activitynames = [];
 
+        
+
         $output = $PAGE->get_renderer('report_psgrading_downloader');
 
         foreach ($activities as $activity) {
@@ -225,10 +231,12 @@ class reportmanager {
                     $studentnames[$studentid] = $data['student'];
                     $template = 'report_psgrading_downloader/report_template';
                     $grouptasksbyactivity[$activity->cmid][$studentid][] = $output->render_from_template($template, $data);
+           
                 }
 
             }
         }
+
 
         list($pdfs, $tempdir) = $this->generate_pdf($grouptasksbyactivity, $studentnames, $activitynames);
         $this->save_generated_reports($pdfs, $courseid, $tempdir);
@@ -246,21 +254,28 @@ class reportmanager {
     private function generate_pdf($studenttasktemplates, $studentnames, $activitynames) {
         global $PAGE;
 
-        $options = new Options();
-        $options->set('isRemoteEnabled', true); // To be able to display the profile image.
+       
         $pdfs = [];
 
         $tempdir = make_temp_directory('report_psgrading_downloader');
         $renderer = $PAGE->get_renderer('report_psgrading_downloader');
-
+        
         foreach ($studenttasktemplates as $cmid => $module) {
             foreach ($module as $studentid => $studenttemplates) {
+                
                 $renderer->sanitisetemplate($studenttemplates);
                 $tasks = implode($studenttemplates);
+
+                $options = new Options();
+                $options->set('tempDir', $tempdir);
+                $options->set('isRemoteEnabled', true);
+                $options->set('isHtml5ParserEnabled', true);
+                
                 $dompdf = new Dompdf($options);
                 $dompdf->loadHtml($tasks);
-                $dompdf->setPaper('a0', 'landscape');
+                $dompdf->setPaper('a3', 'landscape');
                 $dompdf->render();
+                
                 $output = $dompdf->output();
                 // Add the activity name as part of the name.
                 $filename = str_replace(' ', '_', $studentnames[$studentid]->fullname . '_' .$activitynames[$cmid]) .'.pdf';
@@ -271,7 +286,7 @@ class reportmanager {
 
             }
         }
-
+      
         return [$pdfs, $tempdir];
     }
 
@@ -317,7 +332,5 @@ class reportmanager {
 
         die(); // If not set, an invalid zip file error is thrown.
     }
-
-
 
 }

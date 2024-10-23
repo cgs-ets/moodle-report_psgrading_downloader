@@ -78,7 +78,7 @@ class psgrading_downloader_form extends moodleform {
         // All the cmids.
 
         $mform->addElement('hidden', 'allcmids', $allcmids);
-
+        $mform->settype('allcmids', PARAM_INT);
         // Published.
 
         $mform->addElement('advcheckbox',
