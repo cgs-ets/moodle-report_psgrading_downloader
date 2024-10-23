@@ -19,6 +19,9 @@ define(['core/ajax'], function (Ajax) {
         let self = this;
 
         self.selectSetting();
+        // self.validateForm();
+        const submitBtn = document.querySelector('.btn-psgrading-download');
+        submitBtn.addEventListener('click', self.validateForm);
 
     };
 
@@ -40,7 +43,7 @@ define(['core/ajax'], function (Ajax) {
 
     Controls.prototype.selectByOneHandler = function (s, e) {
         let username = e.target.getAttribute('value');
-
+        document.getElementById('psgrading-downloader-danger-alert').classList.add('psgrading-downloader-alert');
         if (e.target.checked) {
             s.addUserToList(username);
         } else {
@@ -65,7 +68,8 @@ define(['core/ajax'], function (Ajax) {
     Controls.prototype.selectAllHandler = function (s, e) {
 
         const inputs = document.querySelectorAll('input[name="select_student[]"]');
-        // 
+        document.getElementById('psgrading-downloader-danger-alert').classList.add('psgrading-downloader-alert');
+
         if (e.target.checked) {
             document.querySelector('input[name="selectedusers"]').value = document.querySelector('.psgrading-downloader-table').getAttribute('data-all-users');
         } else {
@@ -77,6 +81,18 @@ define(['core/ajax'], function (Ajax) {
         });
 
     };
+
+    Controls.prototype.validateForm = function (e) {
+        e.preventDefault();
+
+        if (document.querySelector('input[name="selectedusers"]').value === "[]") {
+            document.getElementById('psgrading-downloader-danger-alert').classList.remove('psgrading-downloader-alert');
+        } else {
+            document.querySelector(".download-report-form").submit();
+        }
+
+
+    }
 
     return {
         init: init

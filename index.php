@@ -30,14 +30,13 @@ require_once('psgrading_downloader_form.php');
 
 $id                      = optional_param('id', 0, PARAM_INT); // Course ID.
 $selectedactivities      = optional_param('selectedactivities', '', PARAM_TEXT);
-$selectedusers           = optional_param('selectedusers', '', PARAM_TEXT);
+$selectedusers           = optional_param('selectedusers', '[]', PARAM_TEXT);
 
 $manager                 = new report_psgrading_downloader\reportmanager();
 
 // Download.
 
-if ($selectedusers != '') {
-
+if ($selectedusers != '[]') {
     $manager->download_reports($selectedactivities, $selectedusers, $id);
 }
 

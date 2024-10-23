@@ -22,14 +22,19 @@
 
 {{! Form to collect the activities that will be downloaded }}
 <div class ='report-psgrading-downloader'>
-    <form  action="{{action}}" method="post" accept-charset="utf-8">
+    <form  action="{{action}}" method="post" accept-charset="utf-8" class = 'download-report-form'>
         <input name="id" type="hidden" value="{{id}}">  {{! course id}}
         <input name="sesskey" type="hidden" value="{{sessionkey}}">
         <input name="selectedusers" type="hidden" value="[]">
         <input name="selectedactivities" type="hidden" value="{{psgradingjson}}"> {{! psgrading id}}
         <button type="submit" class="btn btn-primary btn-psgrading-download">{{#str}}download, report_psgrading_downloader {{/str}}</button>
     </form>
+    <br><br>
+    <div class="alert alert-danger psgrading-downloader-alert" role="alert" id = 'psgrading-downloader-danger-alert'>
+    Please, select one or more students.
+    </div>
 </div>
+
 
 {{#js}}
 require(['report_psgrading_downloader/main'], function(Main) {

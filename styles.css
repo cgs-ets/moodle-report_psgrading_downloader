@@ -6,6 +6,9 @@ select#id_filterbygroup {
     width: 27rem;
 }
 
+.psgrading-downloader-alert {
+    display: none;
+}
 
 /* Task and report template styles */
 .attachment .photo,
