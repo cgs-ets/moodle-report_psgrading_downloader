@@ -35,8 +35,11 @@ $string['download']                      = 'Download report(s)';
 $string['filter']                        = 'Filter';
 $string['includeunreleased']             = 'Include tasks for which feedback has not been released.';
 $string['includeunreleased_help']        = 'If checked, all tasks related to the activity will be printed';
+$string['longprocesswarning']            = 'Please note that exporting PS grading reports to PDF may take some time, especially when the selection includes multiple groups and activities. Kindly avoid closing your browser during this process.';
 $string['nopsgradingactivities']         = 'There are no PS grading activities in this course';
+$string['noselection']                   = 'Please select one or more students';
 $string['notmatchedcriteria']            = 'There are no tasks graded for this activity';
 $string['pluginname']                    = 'PS Grading downloader';
+
 
 

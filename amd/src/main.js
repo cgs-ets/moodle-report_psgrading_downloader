@@ -85,6 +85,8 @@ define(['core/ajax'], function (Ajax) {
     Controls.prototype.validateForm = function (e) {
         e.preventDefault();
 
+        document.getElementById('psgrading-downloader-warning-alert').classList.remove('psgrading-downloader-warning-alert');
+
         if (document.querySelector('input[name="selectedusers"]').value === "[]") {
             document.getElementById('psgrading-downloader-danger-alert').classList.remove('psgrading-downloader-alert');
         } else {

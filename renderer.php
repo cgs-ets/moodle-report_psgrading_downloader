@@ -27,9 +27,27 @@ use mod_psgrading\utils;
 use report_psgrading_downloader\reportmanager;
 use mod_psgrading\persistents\task;
 
+/**
+ * Undocumented class
+ */
 class report_psgrading_downloader_renderer extends plugin_renderer_base {
 
+    /**
+     * Undocumented function
+     *
+     * @param mixed $courseid
+     * @param mixed $includeunpublished
+     * @param mixed $url
+     * @param mixed $groups
+     * @param mixed $activityids
+     * @return void
+     */
     public function render_selection($courseid,  $includeunpublished, $url, $groups, $activityids) {
+
+        // echo '<pre>';
+        // echo print_r($activityids, true);
+        // echo print_r($groups, true);
+        // echo '</pre>'; exit;
 
         $manager = new reportmanager();
 
@@ -78,7 +96,7 @@ class report_psgrading_downloader_renderer extends plugin_renderer_base {
         }
 
         $allstudents = [];
-      
+
         foreach ($students as $student) {
             $value = $student->username . '_'.  $student->id;
             $checkbox = '<input type="checkbox" name="select_student[]" value="' . $value . '">';
@@ -129,10 +147,10 @@ class report_psgrading_downloader_renderer extends plugin_renderer_base {
         $student = \core_user::get_user($studentid);
 
         utils::load_user_display_info($student);
-       
+
         // Get existing marking values for this user and incorporate into task criterion data.
         $gradeinfo = task::get_task_user_gradeinfo($task->id, $studentid);
-      
+
         // Load task criterions.
         $task->criterions = task::get_criterions($task->id);
 
@@ -155,15 +173,15 @@ class report_psgrading_downloader_renderer extends plugin_renderer_base {
         // Load task engagements.
         // $task->engagements = task::get_engagement($task->id);
         // foreach ($task->engagements as $i => $engagement) {
-        //     if ($engagement->hidden) {
-        //         unset($task->engagements[$i]);
-        //         continue;
-        //     }
-        //     // Add selections only if task is released. And not hidden from student.
-        //     if (isset($gradeinfo->engagements[$engagement->id]) && $task->released && !utils::is_hide_ps_grades()) {
-        //         // There is a gradelevel chosen for this engagement.
-        //         $engagement->{'level' . $gradeinfo->engagements[$engagement->id]->gradelevel . 'selected'} = true;
-        //     }
+        // if ($engagement->hidden) {
+        // unset($task->engagements[$i]);
+        // continue;
+        // }
+        // Add selections only if task is released. And not hidden from student.
+        // if (isset($gradeinfo->engagements[$engagement->id]) && $task->released && !utils::is_hide_ps_grades()) {
+        // There is a gradelevel chosen for this engagement.
+        // $engagement->{'level' . $gradeinfo->engagements[$engagement->id]->gradelevel . 'selected'} = true;
+        // }
         // }
 
         // // Zero indexes so templates work.

@@ -6,7 +6,8 @@ select#id_filterbygroup {
     width: 27rem;
 }
 
-.psgrading-downloader-alert {
+.psgrading-downloader-alert,
+.psgrading-downloader-warning-alert {
     display: none;
 }
 
@@ -236,7 +237,8 @@ select#id_filterbygroup {
     overflow: hidden;
 }
 
-.generaltable th, .generaltable td {
+.generaltable th,
+.generaltable td {
     padding: .75rem;
     vertical-align: top;
     border-top: 1px solid #dee2e6;

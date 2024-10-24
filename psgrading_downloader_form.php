@@ -13,7 +13,6 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
-
 /**
  * A report to display the outcome of scheduled assignfeedback_download
  *
@@ -46,27 +45,35 @@ class psgrading_downloader_form extends moodleform {
         $coursegroups = [];
         $coursegroups[] = get_string('all', 'report_psgrading_downloader');
         $groups = $this->_customdata['groups'];
+        $allgroups = [];
 
         foreach ($groups as $group) {
             $coursegroups[$group->id] = $group->name;
+            $allgroups[] = $group->id;
         }
 
         $mform->addElement('select', 'filterbygroup', get_string('allgroups', 'report_psgrading_downloader'), $coursegroups);
         $mform->getElement('filterbygroup')->setMultiple(true);
         $mform->setDefault('filterbygroup', 0);
 
+        // All the groups.
+        $allgroups = implode(',', $allgroups);
+        $mform->addElement('hidden', 'allgroups', $allgroups);
+        $mform->settype('allgroups', PARAM_RAW);
+
         // PS grading activities.
 
         $psgactivities = [];
         $psgactivities[] = get_string('all', 'report_psgrading_downloader');
 
-        $results = $this->_customdata['psids'];
-
-        foreach ($results as $row) {
-            $psgactivities[$row->cmid] = $row->name;
+        $activities = $this->_customdata['psids'];
+        $allcmids = [];
+        foreach ($activities as $activity) {
+            $psgactivities[$activity->cmid] = $activity->name;
+            $allcmids[] = $activity->cmid;
         }
 
-        $allcmids = implode(',', array_keys($psgactivities));
+        $allcmids = implode(',', $allcmids);
 
         $mform->addElement('select',
                             'psgradinactivities',
@@ -78,7 +85,8 @@ class psgrading_downloader_form extends moodleform {
         // All the cmids.
 
         $mform->addElement('hidden', 'allcmids', $allcmids);
-        $mform->settype('allcmids', PARAM_INT);
+        $mform->settype('allcmids', PARAM_RAW);
+
         // Published.
 
         $mform->addElement('advcheckbox',
