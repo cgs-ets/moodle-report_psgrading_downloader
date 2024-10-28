@@ -42,7 +42,7 @@ if ($selectedusers != '[]') {
 
 $url = new moodle_url('/report/psgrading_downloader/index.php', ['id' => $id]);
 $PAGE->set_url($url);
-$PAGE->set_pagelayout('admin');
+$PAGE->set_pagelayout('report');
 $PAGE->add_body_class('report_psgrading_downloader');
 
 if (!$course = $DB->get_record('course', ['id' => $id])) {
@@ -73,6 +73,7 @@ if ($data = $mform->get_data()) {
     $includeunpublished = $data->includeunreleased;
     $groups             = in_array('0', $data->filterbygroup) ? explode(',', $data->allgroups) : $data->filterbygroup;
     $filter             = true;
+
 }
 
 if ($id == 0 || $id == 1) {  // 1 is the main page.

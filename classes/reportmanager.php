@@ -40,7 +40,9 @@ global $CFG;
 class reportmanager {
 
     /**
-     * Undocumented function
+     * Get all the activities of type psgrading for a given course.
+     * The condition are that the tasks associated to the activity must have
+     * criterions that are not empty.
      *
      * @param mixed $courseid
      * @return void
@@ -131,6 +133,8 @@ class reportmanager {
 
         $students = $DB->get_records_sql($sql, $params);
 
+
+
         return $students;
     }
 
@@ -196,7 +200,9 @@ class reportmanager {
      * @param mixed $selectedstudents
      * @param mixed $courseid
      * @return void
+     * 
      */
+    // TODO  : reorganise in batches to avoid crash when all is selected 
     public function download_reports($activities, $selectedstudents, $courseid) {
         global $PAGE;
 
@@ -205,7 +211,6 @@ class reportmanager {
 
         // Remove brackets and quotes from the string.
         $selectedstudents = explode(',', str_replace(['[', ']', '"'], '', $selectedstudents));
-
         $studentidusername = [];
 
         // Loop through each item and split into username and userid.
@@ -218,26 +223,47 @@ class reportmanager {
         $grouptasksbyactivity = [];
         $studentnames = [];
         $activitynames = [];
-
+        $batchSize = 5;
         $output = $PAGE->get_renderer('report_psgrading_downloader');
+
+        // foreach ($activities as $activity) {
+        //     $activitynames[$activity->cmid] = trim($activity->activity_name);
+        //     foreach ($activity->taskids as $taskid) {
+        //         foreach ($studentidusername as $username => $studentid) {
+        //             $data = $output->task_details($taskid, $studentid, $username, $activity);
+        //             $studentnames[$studentid] = $data['student'];
+        //             $template = 'report_psgrading_downloader/report_template';
+        //             $grouptasksbyactivity[$activity->cmid][$studentid][] = $output->render_from_template($template, $data);
+
+        //         }
+
+        //     }
+        // }
 
         foreach ($activities as $activity) {
             $activitynames[$activity->cmid] = trim($activity->activity_name);
-            foreach ($activity->taskids as $taskid) {
-                foreach ($studentidusername as $username => $studentid) {
-                    $data = $output->task_details($taskid, $studentid, $username, $activity);
-                    $studentnames[$studentid] = $data['student'];
-                    $template = 'report_psgrading_downloader/report_template';
-                    $grouptasksbyactivity[$activity->cmid][$studentid][] = $output->render_from_template($template, $data);
-
+            foreach (array_chunk($activity->taskids, $batchSize) as $taskChunk) {
+                foreach (array_chunk($studentidusername, $batchSize, true) as $studentChunk) {
+                    $this->process_activity_tasks($taskChunk, $activity, $studentChunk, $output, $grouptasksbyactivity, $studentnames);
                 }
-
             }
         }
-
+        
         list($pdfs, $tempdir) = $this->generate_pdf($grouptasksbyactivity, $studentnames, $activitynames);
         $this->save_generated_reports($pdfs, $courseid, $tempdir);
 
+    }
+
+    private function process_activity_tasks($taskChunk, $activity, $studentChunk, $output, &$grouptasksbyactivity, &$studentnames) {
+        \core_php_time_limit::raise();
+        foreach ($taskChunk as $taskid) {
+            foreach ($studentChunk as $username => $studentid) {
+                $data = $output->task_details($taskid, $studentid, $username, $activity);
+                $studentnames[$studentid] = $data['student'];
+                $template = 'report_psgrading_downloader/report_template';
+                $grouptasksbyactivity[$activity->cmid][$studentid][] = $output->render_from_template($template, $data);
+            }
+        }
     }
 
     /**
@@ -252,6 +278,7 @@ class reportmanager {
         global $PAGE;
 
         $pdfs = [];
+        \core_php_time_limit::raise();
 
         $tempdir = make_temp_directory('report_psgrading_downloader');
         $renderer = $PAGE->get_renderer('report_psgrading_downloader');
@@ -296,6 +323,8 @@ class reportmanager {
      */
     private function save_generated_reports($pdfs, $courseid, $tempdir) {
         global $DB;
+        \core_php_time_limit::raise();
+
 
         $coursename = $DB->get_field('course', 'fullname', ['id' => $courseid]);
         $dirname = clean_filename($coursename . '.zip'); // Main folder.

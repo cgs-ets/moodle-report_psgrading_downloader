@@ -44,16 +44,22 @@ class report_psgrading_downloader_renderer extends plugin_renderer_base {
      */
     public function render_selection($courseid,  $includeunpublished, $url, $groups, $activityids) {
 
-        // echo '<pre>';
-        // echo print_r($activityids, true);
-        // echo print_r($groups, true);
-        // echo '</pre>'; exit;
+        
 
         $manager = new reportmanager();
 
         // Get the tasks for each activity.
         $tasks = $manager->get_activity_tasks($activityids, $includeunpublished);
+        // Check if it tasks comes empty.
+        if (count($tasks) == 0) {
+            $message = get_string('notmatchedcriteria', 'report_psgrading_downloader');
+            $level = core\output\notification::NOTIFY_INFO;
+            \core\notification::add($message, $level);
+            return;
+
+        }
         $taskids = implode(',', array_keys($tasks));
+
 
         // Get the students.
         $students = $manager->get_students_in_course($courseid, $groups, $taskids);  // Filter by group.
@@ -107,7 +113,7 @@ class report_psgrading_downloader_renderer extends plugin_renderer_base {
             // Create a row for each student with tasks grouped by activity.
             $taskcolumns = [];
             foreach ($formattedtasksbyactivity as $activity => $tasks) {
-                $taskcolumns[] = $tasks;
+                $taskcolumns[] = '';//$tasks;
             }
 
             $row = array_merge([$checkbox, $namewithpicture], $taskcolumns);
@@ -116,7 +122,13 @@ class report_psgrading_downloader_renderer extends plugin_renderer_base {
 
         $selectall = '<input type="checkbox" name="select_all" value="all" title ="Select all">';
 
-        $headers = array_merge([$selectall, 'Name'], array_keys($formattedtasksbyactivity));
+        // $headers = array_merge([$selectall, 'Name'], array_keys($formattedtasksbyactivity));
+        $headers = [$selectall, 'Name'];
+        foreach ($tasksbyactivity as $activity => $tasknames) {
+            $header = '<div class="psgrading-dowloader-header-container"><div class="psgrading-dowloader-header-title"><strong>' . htmlspecialchars($activity) . '</strong></div><hr><div class="psgrading-dowloader-header-tasks">' . implode('<hr>', array_map('htmlspecialchars', $tasknames)) . '</div></div>';
+            $headers[] = $header;
+        }
+        
 
         $data = [
             'headers' => $headers,

@@ -272,3 +272,30 @@ ul.tbl-tr {
     width: 20px;
     height: 20px;
 }
+
+.psgrading-header .header-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    height: 100%; /* Make the container take the full height of the th */
+}
+
+.psgrading-header .header-title {
+    flex: 0 0 auto;
+}
+
+.psgrading-header .header-tasks {
+    flex: 1 0 auto;
+    text-align: center;
+    font-weight: normal !important;
+}
+
+.psgrading-header {
+    vertical-align: top; /* Ensure the th aligns its content to the top */
+    height: auto; /* Allow th to adjust its height */
+}
+
+.psgrading-dowloader-header-tasks {
+    font-weight: normal;
+}
