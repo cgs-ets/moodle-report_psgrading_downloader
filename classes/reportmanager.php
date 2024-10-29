@@ -192,7 +192,7 @@ class reportmanager {
     }
 
     /**
-     * Undocumented function
+     * Generates a PDF version of the PS grading reports
      *
      * @param mixed $activities
      * @param mixed $selectedstudents
@@ -250,6 +250,8 @@ class reportmanager {
      */
     private function process_activity_tasks($taskchunk, $activity, $studentchunk, $output, &$grouptasksbyactivity, &$studentnames) {
         \core_php_time_limit::raise();
+        
+
         foreach ($taskchunk as $taskid) {
             foreach ($studentchunk as $username => $studentid) {
                 $data = $output->task_details($taskid, $studentid, $username, $activity);
@@ -315,7 +317,7 @@ class reportmanager {
      * @param mixed $tempdir
      * @return void
      */
-    private function save_generated_reportsORIGINAL($pdfs, $courseid, $tempdir) {
+    private function save_generated_reports_ORIGINAL($pdfs, $courseid, $tempdir) {
         global $DB;
         \core_php_time_limit::raise();
 
@@ -345,12 +347,17 @@ class reportmanager {
             unlink($tempfilepath);
         }
 
-        // Remove the temporary directory.
-        // remove_dir($tempdir);
-
         die(); // If not set, an invalid zip file error is thrown.
     }
 
+    /**
+     * Generate a .zip file with the PDF reports.
+     *
+     * @param mixed $pdfs
+     * @param mixed $courseid
+     * @param mixed $tempdir
+     * @return void
+     */
     private function save_generated_reports($pdfs, $courseid, $tempdir) {
         global $DB;
         \core_php_time_limit::raise();
@@ -375,9 +382,6 @@ class reportmanager {
             unlink($tempfilepath);
         }
 
-        // Optionally, remove the temporary directory if it's empty.
-        // remove_dir($tempdir);
-
         // Return the path to the zip file.
         return $zipfilepath;
     }
@@ -401,10 +405,6 @@ class reportmanager {
         ]);
 
         $taskid = \core\task\manager::queue_adhoc_task($task);
-
-        // sleep(25);
-
-        // error_log(print_r($taskid, true));
 
         // Return the task ID to the user.
         return json_encode(['status' => 'started', 'taskid' => $taskid]);
