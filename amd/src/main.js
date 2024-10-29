@@ -19,7 +19,6 @@ define(['core/ajax'], function (Ajax) {
         let self = this;
 
         self.selectSetting();
-        // self.validateForm();
         const submitBtn = document.querySelector('.btn-psgrading-download');
         submitBtn.addEventListener('click', self.validateForm);
 
@@ -85,7 +84,7 @@ define(['core/ajax'], function (Ajax) {
     Controls.prototype.validateForm = function (e) {
         e.preventDefault();
 
-        document.getElementById('psgrading-downloader-warning-alert').classList.remove('psgrading-downloader-warning-alert');
+        // document.getElementById('psgrading-downloader-warning-alert').classList.remove('psgrading-downloader-warning-alert');
 
         if (document.querySelector('input[name="selectedusers"]').value === "[]") {
             document.getElementById('psgrading-downloader-danger-alert').classList.remove('psgrading-downloader-alert');

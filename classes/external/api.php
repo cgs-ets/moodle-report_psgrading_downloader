@@ -1,5 +1,5 @@
 <?php
-// This file is part of Moodle - https://moodle.org/
+// This file is part of Moodle - http://moodle.org/
 //
 // Moodle is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -12,23 +12,27 @@
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
+// along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Plugin version and other meta-data are defined here.
+ * Services
  *
- * @package     report_psgrading_downloader
- * @copyright   2024 Veronica Bermegui
- * @license     https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ * @package    report_psgrading_downloader
+ * @copyright  2024 Veronica Bermegui
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
+
+namespace report_psgrading_downloader\external;
 
 defined('MOODLE_INTERNAL') || die();
 
-$plugin->component = 'report_psgrading_downloader';
-$plugin->release = '0.1.0';
-$plugin->version = 2024102800;
-$plugin->requires = 2022112800;
-$plugin->maturity = MATURITY_ALPHA;
-$plugin->dependencies = [
-    'mod_psgrading' => ANY_VERSION,
-];
+require_once($CFG->libdir.'/externallib.php');
+
+use core_external\external_api;
+
+/**
+ * Undocumented class
+ */
+class api extends external_api {
+    use check_task_status;
+}

@@ -33,6 +33,7 @@ $string['cantdisplayerror']              = 'This report is only functional in  c
 $string['comment']                       = 'Comments';
 $string['download']                      = 'Download report(s)';
 $string['filter']                        = 'Filter';
+$string['filenotfound']                  = 'File not found';
 $string['generatereports']               = 'Generate PS grading report';
 $string['includeunreleased']             = 'Include tasks for which feedback has not been released.';
 $string['includeunreleased_help']        = 'If checked, all tasks related to the activity will be printed';
@@ -41,6 +42,8 @@ $string['nopsgradingactivities']         = 'There are no PS grading activities i
 $string['noselection']                   = 'Please select one or more students';
 $string['notmatchedcriteria']            = 'There are no tasks graded for this activity or the tasks have not been released';
 $string['pluginname']                    = 'PS Grading downloader';
+$string['tasknotfound']                  = 'Task not complete or not found';
+
 
 
 

@@ -30,10 +30,8 @@ use Dompdf\Options;
 defined('MOODLE_INTERNAL') || die();
 
 require_once('../../config.php');
-require_once($CFG->libdir . '/tcpdf/tcpdf.php');
-require('vendor\autoload.php');
-
 global $CFG;
+require($CFG->dirroot . '//report//psgrading_downloader//vendor//autoload.php');
 /**
  * Undocumented class
  */
@@ -200,9 +198,8 @@ class reportmanager {
      * @param mixed $selectedstudents
      * @param mixed $courseid
      * @return void
-     * 
+     *
      */
-    // TODO  : reorganise in batches to avoid crash when all is selected 
     public function download_reports($activities, $selectedstudents, $courseid) {
         global $PAGE;
 
@@ -223,41 +220,38 @@ class reportmanager {
         $grouptasksbyactivity = [];
         $studentnames = [];
         $activitynames = [];
-        $batchSize = 5;
+        $batchsize = 5;
         $output = $PAGE->get_renderer('report_psgrading_downloader');
-
-        // foreach ($activities as $activity) {
-        //     $activitynames[$activity->cmid] = trim($activity->activity_name);
-        //     foreach ($activity->taskids as $taskid) {
-        //         foreach ($studentidusername as $username => $studentid) {
-        //             $data = $output->task_details($taskid, $studentid, $username, $activity);
-        //             $studentnames[$studentid] = $data['student'];
-        //             $template = 'report_psgrading_downloader/report_template';
-        //             $grouptasksbyactivity[$activity->cmid][$studentid][] = $output->render_from_template($template, $data);
-
-        //         }
-
-        //     }
-        // }
 
         foreach ($activities as $activity) {
             $activitynames[$activity->cmid] = trim($activity->activity_name);
-            foreach (array_chunk($activity->taskids, $batchSize) as $taskChunk) {
-                foreach (array_chunk($studentidusername, $batchSize, true) as $studentChunk) {
-                    $this->process_activity_tasks($taskChunk, $activity, $studentChunk, $output, $grouptasksbyactivity, $studentnames);
+            foreach (array_chunk($activity->taskids, $batchsize) as $taskchunk) {
+                foreach (array_chunk($studentidusername, $batchsize, true) as $studentchunk) {
+                    $this->process_activity_tasks($taskchunk, $activity, $studentchunk, $output, $grouptasksbyactivity, $studentnames);
                 }
             }
         }
-        
+
         list($pdfs, $tempdir) = $this->generate_pdf($grouptasksbyactivity, $studentnames, $activitynames);
         $this->save_generated_reports($pdfs, $courseid, $tempdir);
 
     }
 
-    private function process_activity_tasks($taskChunk, $activity, $studentChunk, $output, &$grouptasksbyactivity, &$studentnames) {
+    /**
+     * Undocumented function
+     *
+     * @param mixed $taskchunk
+     * @param mixed $activity
+     * @param mixed $studentchunk
+     * @param mixed $output
+     * @param mixed $grouptasksbyactivity
+     * @param mixed $studentnames
+     * @return void
+     */
+    private function process_activity_tasks($taskchunk, $activity, $studentchunk, $output, &$grouptasksbyactivity, &$studentnames) {
         \core_php_time_limit::raise();
-        foreach ($taskChunk as $taskid) {
-            foreach ($studentChunk as $username => $studentid) {
+        foreach ($taskchunk as $taskid) {
+            foreach ($studentchunk as $username => $studentid) {
                 $data = $output->task_details($taskid, $studentid, $username, $activity);
                 $studentnames[$studentid] = $data['student'];
                 $template = 'report_psgrading_downloader/report_template';
@@ -321,10 +315,9 @@ class reportmanager {
      * @param mixed $tempdir
      * @return void
      */
-    private function save_generated_reports($pdfs, $courseid, $tempdir) {
+    private function save_generated_reportsORIGINAL($pdfs, $courseid, $tempdir) {
         global $DB;
         \core_php_time_limit::raise();
-
 
         $coursename = $DB->get_field('course', 'fullname', ['id' => $courseid]);
         $dirname = clean_filename($coursename . '.zip'); // Main folder.
@@ -353,9 +346,86 @@ class reportmanager {
         }
 
         // Remove the temporary directory.
-        remove_dir($tempdir);
+        // remove_dir($tempdir);
 
         die(); // If not set, an invalid zip file error is thrown.
     }
+
+    private function save_generated_reports($pdfs, $courseid, $tempdir) {
+        global $DB;
+        \core_php_time_limit::raise();
+
+        $coursename = $DB->get_field('course', 'fullname', ['id' => $courseid]);
+        $dirname = clean_filename($coursename . '.zip'); // Main folder.
+        $zipfilepath = $tempdir . '/' . $dirname;
+
+        // Create the zip.
+        $zipfile = new \zip_archive();
+        @unlink($zipfilepath);
+        $zipfile->open($zipfilepath);
+
+        foreach ($pdfs as $filename => $tempfilepath) {
+            $zipfile->add_file_from_pathname($filename, $tempfilepath);
+        }
+
+        $zipfile->close();
+
+        // Clean up temporary files.
+        foreach ($pdfs as $tempfilepath) {
+            unlink($tempfilepath);
+        }
+
+        // Optionally, remove the temporary directory if it's empty.
+        // remove_dir($tempdir);
+
+        // Return the path to the zip file.
+        return $zipfilepath;
+    }
+
+
+    /**
+     * Undocumented function
+     *
+     * @param mixed $activities
+     * @param mixed $selectedstudents
+     * @param mixed $courseid
+     * @return string
+     */
+    public function start_report_generation($activities, $selectedstudents, $courseid) {
+
+        $task = new \report_psgrading_downloader\task\generate_reports();
+        $task->set_custom_data([
+            'activities' => $activities,
+            'selectedstudents' => $selectedstudents,
+            'courseid' => $courseid,
+        ]);
+
+        $taskid = \core\task\manager::queue_adhoc_task($task);
+
+        // sleep(25);
+
+        // error_log(print_r($taskid, true));
+
+        // Return the task ID to the user.
+        return json_encode(['status' => 'started', 'taskid' => $taskid]);
+    }
+
+    /**
+     * Undocumented function
+     *
+     * @return string
+     */
+    public function get_adhoc_task_status($taskid) {
+        global $DB;
+
+        $record = $DB->get_record('report_psgrading_downloader_tasks', ['taskid' => $taskid]);
+
+        if ($record) {
+            return $record->status;
+        } else {
+            return 'not_found';
+        }
+    }
+
 
 }

@@ -6,8 +6,9 @@ select#id_filterbygroup {
     width: 27rem;
 }
 
-.psgrading-downloader-alert,
-.psgrading-downloader-warning-alert {
+/* ,
+.psgrading-downloader-warning-alert  */
+.psgrading-downloader-alert {
     display: none;
 }
 
@@ -278,7 +279,8 @@ ul.tbl-tr {
     flex-direction: column;
     align-items: center;
     justify-content: flex-start;
-    height: 100%; /* Make the container take the full height of the th */
+    height: 100%;
+    /* Make the container take the full height of the th */
 }
 
 .psgrading-header .header-title {
@@ -292,8 +294,10 @@ ul.tbl-tr {
 }
 
 .psgrading-header {
-    vertical-align: top; /* Ensure the th aligns its content to the top */
-    height: auto; /* Allow th to adjust its height */
+    vertical-align: top;
+    /* Ensure the th aligns its content to the top */
+    height: auto;
+    /* Allow th to adjust its height */
 }
 
 .psgrading-dowloader-header-tasks {

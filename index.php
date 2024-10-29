@@ -33,11 +33,16 @@ $selectedactivities      = optional_param('selectedactivities', '', PARAM_TEXT);
 $selectedusers           = optional_param('selectedusers', '[]', PARAM_TEXT);
 
 $manager                 = new report_psgrading_downloader\reportmanager();
-
+$downloading = 0;
 // Download.
 
 if ($selectedusers != '[]') {
-    $manager->download_reports($selectedactivities, $selectedusers, $id);
+    // $manager->download_reports($selectedactivities, $selectedusers, $id);
+    $stats = $manager->start_report_generation($selectedactivities, $selectedusers, $id);
+    $taskid = (json_decode($stats))->taskid;
+    $PAGE->requires->js_call_amd('report_psgrading_downloader/tasktracker', 'init', [$taskid, $id]);
+    $downloading = 1;
+
 }
 
 $url = new moodle_url('/report/psgrading_downloader/index.php', ['id' => $id]);
@@ -90,6 +95,10 @@ if ($id == 0 || $id == 1) {  // 1 is the main page.
         \core\notification::add($message, $level);
     } else {
         $mform->display();
+
+        if ($downloading) {
+            echo $renderer->showalert();
+        }
     }
 
     // Only if the user clicked filter display this.

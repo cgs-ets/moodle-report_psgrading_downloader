@@ -55,7 +55,7 @@ class psgrading_downloader_form extends moodleform {
         $mform->addElement('select', 'filterbygroup', get_string('allgroups', 'report_psgrading_downloader'), $coursegroups);
         $mform->getElement('filterbygroup')->setMultiple(true);
         $mform->setDefault('filterbygroup', 0);
-        $mform->addRule('filterbygroup', null, 'required');
+        // $mform->addRule('filterbygroup', null, 'required');
 
         // All the groups.
         $allgroups = implode(',', $allgroups);
@@ -82,8 +82,7 @@ class psgrading_downloader_form extends moodleform {
                             $psgactivities);
         $mform->getElement('psgradinactivities')->setMultiple(true);
         $mform->setDefault('psgradinactivities', 0);
-        $mform->addRule('psgradinactivities', null, 'required');
-
+        // $mform->addRule('psgradinactivities', null, 'required');
 
         // All the cmids.
 

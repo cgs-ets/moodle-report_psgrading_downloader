@@ -44,8 +44,6 @@ class report_psgrading_downloader_renderer extends plugin_renderer_base {
      */
     public function render_selection($courseid,  $includeunpublished, $url, $groups, $activityids) {
 
-        
-
         $manager = new reportmanager();
 
         // Get the tasks for each activity.
@@ -59,7 +57,6 @@ class report_psgrading_downloader_renderer extends plugin_renderer_base {
 
         }
         $taskids = implode(',', array_keys($tasks));
-
 
         // Get the students.
         $students = $manager->get_students_in_course($courseid, $groups, $taskids);  // Filter by group.
@@ -128,7 +125,7 @@ class report_psgrading_downloader_renderer extends plugin_renderer_base {
             $header = '<div class="psgrading-dowloader-header-container"><div class="psgrading-dowloader-header-title"><strong>' . htmlspecialchars($activity) . '</strong></div><hr><div class="psgrading-dowloader-header-tasks">' . implode('<hr>', array_map('htmlspecialchars', $tasknames)) . '</div></div>';
             $headers[] = $header;
         }
-        
+
 
         $data = [
             'headers' => $headers,
@@ -267,10 +264,14 @@ class report_psgrading_downloader_renderer extends plugin_renderer_base {
 
         $headerpattern = '/<!-- SELECTED STUDENT HEADER START -->.*?<!-- SELECTED STUDENT HEADER END-->/s';
 
-        for($i = 1; $i < count($templates); $i++) {
+        for ($i = 1; $i < count($templates); $i++) {
             $templates[$i] = preg_replace($headerpattern, '', $templates[$i]);
         }
 
+    }
+
+    public function showalert() {
+        echo $this->render_from_template('report_psgrading_downloader/alert', '');
     }
 
 }

@@ -15,7 +15,6 @@
 // along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
 
 /**
- * Plugin version and other meta-data are defined here.
  *
  * @package     report_psgrading_downloader
  * @copyright   2024 Veronica Bermegui
@@ -24,11 +23,13 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-$plugin->component = 'report_psgrading_downloader';
-$plugin->release = '0.1.0';
-$plugin->version = 2024102800;
-$plugin->requires = 2022112800;
-$plugin->maturity = MATURITY_ALPHA;
-$plugin->dependencies = [
-    'mod_psgrading' => ANY_VERSION,
+$functions = [
+    'report_psgrading_downloader_check_task_status' => [
+        'classname'   => 'report_psgrading_downloader\external\api',
+        'methodname'  => 'check_task_status',
+        'description' => 'Check the status of a background task.',
+        'type'        => 'read',
+        'ajax'        => true,
+    ],
 ];
+
