@@ -33,7 +33,7 @@ require_once('../../config.php');
 global $CFG;
 require($CFG->dirroot . '//report//psgrading_downloader//vendor//autoload.php');
 /**
- *  Manager class of the plugin
+ * Undocumented class
  */
 class reportmanager {
 
@@ -130,6 +130,9 @@ class reportmanager {
         }
 
         $students = $DB->get_records_sql($sql, $params);
+
+
+
         return $students;
     }
 
@@ -189,7 +192,7 @@ class reportmanager {
     }
 
     /**
-     * Undocumented function
+     * Generates a PDF version of the PS grading reports
      *
      * @param mixed $activities
      * @param mixed $selectedstudents
@@ -247,6 +250,8 @@ class reportmanager {
      */
     private function process_activity_tasks($taskchunk, $activity, $studentchunk, $output, &$grouptasksbyactivity, &$studentnames) {
         \core_php_time_limit::raise();
+
+
         foreach ($taskchunk as $taskid) {
             foreach ($studentchunk as $username => $studentid) {
                 $data = $output->task_details($taskid, $studentid, $username, $activity);
@@ -305,34 +310,68 @@ class reportmanager {
     }
 
     /**
-     * Save generated PDF reports
+     * Undocumented function
      *
      * @param mixed $pdfs
      * @param mixed $courseid
      * @param mixed $tempdir
      * @return void
      */
-    private function save_generated_reports($pdfs, $courseid, $tempdir) {
+    private function save_generated_reports_ORIGINAL($pdfs, $courseid, $tempdir) {
         global $DB;
         \core_php_time_limit::raise();
 
         $coursename = $DB->get_field('course', 'fullname', ['id' => $courseid]);
-        $basedirname = clean_filename($coursename);
-        $zipindex = 1;
-        $zipfilepaths = [];
+        $dirname = clean_filename($coursename . '.zip'); // Main folder.
+        $zipfilepath = $tempdir . '/' . $dirname;
 
-        // Create the first zip file.
-        list($zipfile, $zipfilepath) = $this->create_new_zip($basedirname, $zipindex, $tempdir);
-        $zipfilepaths[] = $zipfilepath;
+        // Create the zip.
+        $zipfile = new \zip_archive();
+        @unlink($zipfilepath);
+        $zipfile->open($zipfilepath);
 
         foreach ($pdfs as $filename => $tempfilepath) {
-            // Check if the current zip file has reached a limit (e.g., 1000 files)
-            if ($zipfile->numFiles >= 1000) {
-                $zipfile->close();
-                $zipindex++;
-                list($zipfile, $zipfilepath) = $this->create_new_zip($basedirname, $zipindex, $tempdir);
-                $zipfilepaths[] = $zipfilepath;
-            }
+            $zipfile->add_file_from_pathname($filename, $tempfilepath);
+        }
+
+        $zipfile->close();
+
+        header("Content-Type: application/zip");
+        header("Content-Disposition: attachment; filename=$dirname");
+        header("Content-Length: " . filesize($zipfilepath));
+        readfile($zipfilepath);
+        unlink($zipfilepath);
+
+        // Clean up temporary files.
+        foreach ($pdfs as $tempfilepath) {
+            unlink($tempfilepath);
+        }
+
+        die(); // If not set, an invalid zip file error is thrown.
+    }
+
+    /**
+     * Generate a .zip file with the PDF reports.
+     *
+     * @param mixed $pdfs
+     * @param mixed $courseid
+     * @param mixed $tempdir
+     * @return void
+     */
+    private function save_generated_reports_NEW($pdfs, $courseid, $tempdir) {
+        global $DB;
+        \core_php_time_limit::raise();
+
+        $coursename = $DB->get_field('course', 'fullname', ['id' => $courseid]);
+        $dirname = clean_filename($coursename . '.zip'); // Main folder.
+        $zipfilepath = $tempdir . '/' . $dirname;
+
+        // Create the zip.
+        $zipfile = new \zip_archive();
+        @unlink($zipfilepath);
+        $zipfile->open($zipfilepath);
+
+        foreach ($pdfs as $filename => $tempfilepath) {
             $zipfile->add_file_from_pathname($filename, $tempfilepath);
         }
 
@@ -343,38 +382,67 @@ class reportmanager {
             unlink($tempfilepath);
         }
 
-        // Create a master zip file containing all the individual zip files.
-        $masterzipfilepath = $tempdir . '/' . $basedirname . '.zip';
-        $masterzipfile = new \zip_archive();
-        @unlink($masterzipfilepath);
-        $masterzipfile->open($masterzipfilepath);
-
-        foreach ($zipfilepaths as $zipfilepath) {
-            $masterzipfile->add_file_from_pathname(basename($zipfilepath), $zipfilepath);
-        }
-
-        $masterzipfile->close();
-
-        // Clean up individual zip files.
-        foreach ($zipfilepaths as $zipfilepath) {
-            unlink($zipfilepath);
-        }
-
-        // Return the path to the master zip file.
-        return $masterzipfilepath;
+        // Return the path to the zip file.
+        return $zipfilepath;
     }
 
-        /**
-         * Function to create a zip file
-         *
-         * @param mixed $basedirname
-         * @param mixed $zipindex
-         * @param mixed $tempdir
-         * @return void
-         */
-    private function create_new_zip($basedirname, $zipindex, $tempdir) {
+    private function save_generated_reports($pdfs, $courseid, $tempdir) {
+        global $DB;
+        \core_php_time_limit::raise();
 
-        $dirname = $basedirname . '_' . $zipindex . '.zip';
+        $coursename = $DB->get_field('course', 'fullname', ['id' => $courseid]);
+        $baseDirname = clean_filename($coursename);
+        $zipIndex = 1;
+        $zipFilepaths = [];
+
+
+
+        // Create the first zip file
+        list($zipfile, $zipfilepath) = $this->create_new_zip($baseDirname, $zipIndex, $tempdir);
+        $zipFilepaths[] = $zipfilepath;
+
+        foreach ($pdfs as $filename => $tempfilepath) {
+            // Check if the current zip file has reached a limit (e.g., 1000 files)
+            if ($zipfile->numFiles >= 1000) {
+                $zipfile->close();
+                $zipIndex++;
+                list($zipfile, $zipfilepath) = $this->create_new_zip($baseDirname, $zipIndex, $tempdir);
+                $zipFilepaths[] = $zipfilepath;
+            }
+            $zipfile->add_file_from_pathname($filename, $tempfilepath);
+        }
+
+        $zipfile->close();
+
+        // Clean up temporary files
+        foreach ($pdfs as $tempfilepath) {
+            unlink($tempfilepath);
+        }
+
+        // Create a master zip file containing all the individual zip files
+        $masterZipFilepath = $tempdir . '/' . $baseDirname . '.zip';
+        $masterZipfile = new \zip_archive();
+        @unlink($masterZipFilepath);
+        $masterZipfile->open($masterZipFilepath);
+
+        foreach ($zipFilepaths as $zipFilepath) {
+            $masterZipfile->add_file_from_pathname(basename($zipFilepath), $zipFilepath);
+        }
+
+        $masterZipfile->close();
+
+        // Clean up individual zip files
+        foreach ($zipFilepaths as $zipFilepath) {
+            unlink($zipFilepath);
+        }
+
+        // Return the path to the master zip file
+        return $masterZipFilepath;
+    }
+
+    // Function to create a new zip file.
+    private function create_new_zip($baseDirname, $zipIndex, $tempdir) {
+        $dirname = $baseDirname . '_' . $zipIndex . '.zip';
         $zipfilepath = $tempdir . '/' . $dirname;
         $zipfile = new \zip_archive();
         @unlink($zipfilepath);

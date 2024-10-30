@@ -29,6 +29,9 @@ defined('MOODLE_INTERNAL') || die();
  * Manage the adhoc task to generate the pdf reports
  */
 class generate_reports extends \core\task\adhoc_task {
+
+    use \core\task\logging_trait;
+
     /**
      * Undocumented function
      *
@@ -40,7 +43,7 @@ class generate_reports extends \core\task\adhoc_task {
 
         $data = $this->get_custom_data();
         $taskid = $this->get_id();
-
+        $this->log_start("Processing PS grading report export to PDF for {$data->courseid}");
         // Update status to 'in_progress'.
         $this->update_task_status($taskid, 'in_progress');
 
@@ -54,6 +57,8 @@ class generate_reports extends \core\task\adhoc_task {
         } catch (\Exception $e) {
             // Update status to 'failed'.
             $this->update_task_status($taskid, 'failed');
+            $this->delete_task($taskid);
+            
             throw $e;
         }
     }
@@ -81,6 +86,12 @@ class generate_reports extends \core\task\adhoc_task {
             $record->timemodified = time();
             $DB->insert_record('report_psgrading_downloader_tasks', $record);
         }
+    }
+
+    private function delete_task($taskid) {
+        global $DB;
+
+        $DB->delete_records_select('task_adhoc','id = :id ', ['id' => $taskid]);
     }
 }
 
