@@ -1,4 +1,4 @@
-define(['core/ajax', 'core/url'], function (Ajax, URL) {
+define(['core/ajax', 'core/url', 'core/templates'], function (Ajax, URL, Templates) {
 
     let startTime;
     function init(taskid, courseid) {
@@ -9,7 +9,7 @@ define(['core/ajax', 'core/url'], function (Ajax, URL) {
     function checkTaskStatus(taskid, courseid) {
 
 
-        console.log("checking...");
+        console.log(`Checking task ID ${taskid} course ID ${courseid}`);
         Ajax.call([{
             methodname: "report_psgrading_downloader_check_task_status",
             args: {
@@ -22,12 +22,19 @@ define(['core/ajax', 'core/url'], function (Ajax, URL) {
                         taskid: taskid,
                         courseid: courseid
                     }, true);
-                    // console.log(link);
+
                     window.location.href = link;
                     document.getElementById('psgrading-downloader-warning-alert').remove();
                     logElapsedTime();
+                } else if (response.status === 'failed') {
+                    console.log('FAILED');
+                    Templates.render('report_psgrading_downloader/alert_danger', {})
+                        .done(function (html, js) {
+                            Templates.replaceNodeContents(document.getElementById('alert-container'), html, js)
+                        })
                 } else {
                     setTimeout(checkTaskStatus(taskid, courseid), 5000);
+
                 }
 
 

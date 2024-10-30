@@ -33,7 +33,7 @@ require_once('../../config.php');
 global $CFG;
 require($CFG->dirroot . '//report//psgrading_downloader//vendor//autoload.php');
 /**
- * Undocumented class
+ *  Manager class of the plugin
  */
 class reportmanager {
 
@@ -130,9 +130,6 @@ class reportmanager {
         }
 
         $students = $DB->get_records_sql($sql, $params);
-
-
-
         return $students;
     }
 
@@ -308,63 +305,34 @@ class reportmanager {
     }
 
     /**
-     * Undocumented function
+     * Save generated PDF reports
      *
      * @param mixed $pdfs
      * @param mixed $courseid
      * @param mixed $tempdir
      * @return void
      */
-    private function save_generated_reportsORIGINAL($pdfs, $courseid, $tempdir) {
-        global $DB;
-        \core_php_time_limit::raise();
-
-        $coursename = $DB->get_field('course', 'fullname', ['id' => $courseid]);
-        $dirname = clean_filename($coursename . '.zip'); // Main folder.
-        $zipfilepath = $tempdir . '/' . $dirname;
-
-        // Create the zip.
-        $zipfile = new \zip_archive();
-        @unlink($zipfilepath);
-        $zipfile->open($zipfilepath);
-
-        foreach ($pdfs as $filename => $tempfilepath) {
-            $zipfile->add_file_from_pathname($filename, $tempfilepath);
-        }
-
-        $zipfile->close();
-
-        header("Content-Type: application/zip");
-        header("Content-Disposition: attachment; filename=$dirname");
-        header("Content-Length: " . filesize($zipfilepath));
-        readfile($zipfilepath);
-        unlink($zipfilepath);
-
-        // Clean up temporary files.
-        foreach ($pdfs as $tempfilepath) {
-            unlink($tempfilepath);
-        }
-
-        // Remove the temporary directory.
-        // remove_dir($tempdir);
-
-        die(); // If not set, an invalid zip file error is thrown.
-    }
-
     private function save_generated_reports($pdfs, $courseid, $tempdir) {
         global $DB;
         \core_php_time_limit::raise();
 
         $coursename = $DB->get_field('course', 'fullname', ['id' => $courseid]);
-        $dirname = clean_filename($coursename . '.zip'); // Main folder.
-        $zipfilepath = $tempdir . '/' . $dirname;
+        $basedirname = clean_filename($coursename);
+        $zipindex = 1;
+        $zipfilepaths = [];
 
-        // Create the zip.
-        $zipfile = new \zip_archive();
-        @unlink($zipfilepath);
-        $zipfile->open($zipfilepath);
+        // Create the first zip file.
+        list($zipfile, $zipfilepath) = $this->create_new_zip($basedirname, $zipindex, $tempdir);
+        $zipfilepaths[] = $zipfilepath;
 
         foreach ($pdfs as $filename => $tempfilepath) {
+            // Check if the current zip file has reached a limit (e.g., 1000 files)
+            if ($zipfile->numFiles >= 1000) {
+                $zipfile->close();
+                $zipindex++;
+                list($zipfile, $zipfilepath) = $this->create_new_zip($basedirname, $zipindex, $tempdir);
+                $zipfilepaths[] = $zipfilepath;
+            }
             $zipfile->add_file_from_pathname($filename, $tempfilepath);
         }
 
@@ -375,11 +343,43 @@ class reportmanager {
             unlink($tempfilepath);
         }
 
-        // Optionally, remove the temporary directory if it's empty.
-        // remove_dir($tempdir);
+        // Create a master zip file containing all the individual zip files.
+        $masterzipfilepath = $tempdir . '/' . $basedirname . '.zip';
+        $masterzipfile = new \zip_archive();
+        @unlink($masterzipfilepath);
+        $masterzipfile->open($masterzipfilepath);
 
-        // Return the path to the zip file.
-        return $zipfilepath;
+        foreach ($zipfilepaths as $zipfilepath) {
+            $masterzipfile->add_file_from_pathname(basename($zipfilepath), $zipfilepath);
+        }
+
+        $masterzipfile->close();
+
+        // Clean up individual zip files.
+        foreach ($zipfilepaths as $zipfilepath) {
+            unlink($zipfilepath);
+        }
+
+        // Return the path to the master zip file.
+        return $masterzipfilepath;
+    }
+
+        /**
+         * Function to create a zip file
+         *
+         * @param mixed $basedirname
+         * @param mixed $zipindex
+         * @param mixed $tempdir
+         * @return void
+         */
+    private function create_new_zip($basedirname, $zipindex, $tempdir) {
+
+        $dirname = $basedirname . '_' . $zipindex . '.zip';
+        $zipfilepath = $tempdir . '/' . $dirname;
+        $zipfile = new \zip_archive();
+        @unlink($zipfilepath);
+        $zipfile->open($zipfilepath);
+        return [$zipfile, $zipfilepath];
     }
 
 
@@ -401,10 +401,6 @@ class reportmanager {
         ]);
 
         $taskid = \core\task\manager::queue_adhoc_task($task);
-
-        // sleep(25);
-
-        // error_log(print_r($taskid, true));
 
         // Return the task ID to the user.
         return json_encode(['status' => 'started', 'taskid' => $taskid]);

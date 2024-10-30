@@ -270,8 +270,13 @@ class report_psgrading_downloader_renderer extends plugin_renderer_base {
 
     }
 
+    /**
+     * Undocumented function
+     *
+     * @return void
+     */
     public function showalert() {
-        echo $this->render_from_template('report_psgrading_downloader/alert', '');
+        echo $this->render_from_template('report_psgrading_downloader/alert_warning', '');
     }
 
 }

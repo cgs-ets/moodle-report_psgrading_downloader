@@ -45,6 +45,7 @@ class generate_reports extends \core\task\adhoc_task {
         $this->update_task_status($taskid, 'in_progress');
 
         try {
+
             $manager = new \report_psgrading_downloader\reportmanager();
             $manager->download_reports($data->activities, $data->selectedstudents, $data->courseid);
 
