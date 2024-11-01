@@ -151,7 +151,7 @@ class report_psgrading_downloader_renderer extends plugin_renderer_base {
         global $CFG;
 
         $task = new Task($taskid);
-        $taskexporter = new task_exporter($task, ['userid' => $username]); // userid? username userid in synergetic
+        $taskexporter = new task_exporter($task, ['userid' => $studentid]); // userid? username userid in synergetic
         $task = $taskexporter->export($this);
         $student = \core_user::get_user($studentid);
 
