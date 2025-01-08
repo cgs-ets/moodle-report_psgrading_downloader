@@ -247,8 +247,7 @@ class report_psgrading_downloader_renderer extends plugin_renderer_base {
          */
         $stylesheet  = '';
         $stylesheet .= file_get_contents($CFG->wwwroot . '/report/psgrading_downloader/styles.css');
-        error_log(print_r("TASK VERSION!!!!!!!!!", true));
-        error_log(print_r($taskversion, true));
+
         return [
             'task' => $task,
             'activityname' => $activity->activity_name,
