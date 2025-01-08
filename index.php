@@ -31,6 +31,7 @@ require_once('psgrading_downloader_form.php');
 $id                      = optional_param('id', 0, PARAM_INT); // Course ID.
 $selectedactivities      = optional_param('selectedactivities', '', PARAM_TEXT);
 $selectedusers           = optional_param('selectedusers', '[]', PARAM_TEXT);
+$tasksversion            = optional_param('tasksversion', '[]', PARAM_TEXT);
 
 $manager                 = new report_psgrading_downloader\reportmanager();
 $downloading = 0;
@@ -38,7 +39,7 @@ $downloading = 0;
 
 if ($selectedusers != '[]') {
     // $manager->download_reports($selectedactivities, $selectedusers, $id);
-    $stats = $manager->start_report_generation($selectedactivities, $selectedusers, $id);
+    $stats = $manager->start_report_generation($selectedactivities, $selectedusers, $id, $tasksversion);
     $taskid = (json_decode($stats))->taskid;
     $PAGE->requires->js_call_amd('report_psgrading_downloader/tasktracker', 'init', [$taskid, $id]);
     $downloading = 1;
@@ -75,22 +76,21 @@ $activityids = '';
 if ($data = $mform->get_data()) {
     // In this case you process validated data. $mform->get_data() returns data posted in form.
     $activityids        = in_array('0', $data->psgradinactivities) ? explode(',', $data->allcmids) : $data->psgradinactivities;
-    $includeunpublished = $data->includeunreleased;
+    $includeunreleased = $data->includeunreleased;
     $groups             = in_array('0', $data->filterbygroup) ? explode(',', $data->allgroups) : $data->filterbygroup;
     $filter             = true;
-
 }
 
 if ($id == 0 || $id == 1) {  // 1 is the main page.
-    $message = get_string('cantdisplayerror', 'report_assignfeedback_download');
+    $message = get_string('cantdisplayerror', 'report_psgrading_downloader');
     $level   = core\output\notification::NOTIFY_ERROR;
     \core\notification::add($message, $level);
 } else {
     echo $OUTPUT->box_start();
     $renderer = $PAGE->get_renderer('report_psgrading_downloader');
 
-    if ($noactivities) {
-        $message = get_string('nopsgradingactivities', 'report_assignfeedback_download');
+    if (count($psids) == 0) {
+        $message = get_string('nopsgradingactivities', 'report_psgrading_downloader');
         $level   = core\output\notification::NOTIFY_INFO;
         \core\notification::add($message, $level);
     } else {
@@ -105,7 +105,7 @@ if ($id == 0 || $id == 1) {  // 1 is the main page.
     if ($filter) {
         $url            = $PAGE->url;
         $coursename     = $DB->get_field('course', 'fullname', ['id' => $id], $strictness = IGNORE_MISSING);
-        echo $renderer->render_selection($id, $includeunpublished, $url, $groups, $activityids);
+        echo $renderer->render_selection($id, $includeunreleased, $url, $groups, $activityids);
     }
 
     echo $OUTPUT->box_end();

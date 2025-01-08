@@ -1,5 +1,5 @@
 
-<table class="table psgrading-downloader-table" data-activities-json = "{{psgradingjson}}" data-all-users = "{{allstudents}}">
+<table class="table psgrading-downloader-table" data-activities-json = "{{psgradingjson}}" data-all-users = "{{allstudents}}" data-tasks-version = "{{tasksversion}}">
     <thead>
         <tr>
             {{#headers}}
@@ -27,6 +27,7 @@
         <input name="sesskey" type="hidden" value="{{sessionkey}}">
         <input name="selectedusers" type="hidden" value="[]">
         <input name="selectedactivities" type="hidden" value="{{psgradingjson}}"> {{! psgrading id}}
+        <input name="tasksversion" type="hidden" value="{{tasksversion}}">
         <button type="submit" class="btn btn-primary btn-psgrading-download">{{#str}}download, report_psgrading_downloader {{/str}}</button>
     </form>
     <br><br>

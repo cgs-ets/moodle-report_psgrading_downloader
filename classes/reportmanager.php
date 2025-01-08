@@ -43,7 +43,7 @@ class reportmanager {
      * criterions that are not empty.
      *
      * @param mixed $courseid
-     * @return void
+     * @return array
      */
     public function get_psgrading_activities($courseid) {
         global $DB;
@@ -80,7 +80,7 @@ class reportmanager {
      * @param mixed $courseid
      * @param mixed $groups
      * @param mixed $taskids
-     * @return void
+     * @return array
      */
     public function get_students_in_course($courseid, $groups, $taskids) {
         global $DB;
@@ -89,7 +89,7 @@ class reportmanager {
         $userfieldsapi = \core_user\fields::for_userpic();
         $userfields = $userfieldsapi->get_sql('u', false, '', '', false)->selects;
         $userfields .= ', u.username';
-        if (count($groups) === 1 && $groups[0] == 0) {
+        if (count($groups) === 1 && $groups[0] == 0 || empty($groups[0])) {
             // Get all students in the course.
             $sql = "SELECT DISTINCT $userfields
                     FROM {user} u
@@ -142,9 +142,9 @@ class reportmanager {
      *
      * @param mixed $activityid
      * @param mixed $includeunpublished
-     * @return void
+     * @return array
      */
-    public function get_activity_tasks($activityid, $includeunpublished) {
+    public function get_activity_tasks($activityid, $includeunreleased) {
         global $DB;
         $ids = implode(',', $activityid);
 
@@ -154,10 +154,11 @@ class reportmanager {
                 JOIN {psgrading} ps ON ps.id = cm.instance
                 WHERE cm.id IN ($ids)
                 AND cm.module = (SELECT id FROM {modules} WHERE name = 'psgrading')
-                AND t.deleted = 0";
+                AND t.deleted = 0
+                AND t.published = 1"; // Only published (visible) tasks.
 
-        if (!$includeunpublished) {
-            $sql .= " AND t.published = 1";
+        if (!$includeunreleased) {
+            $sql .= " AND t.timerelease <> 0";
         }
 
         $sql .= " ORDER BY ps.name";
@@ -200,7 +201,7 @@ class reportmanager {
      * @return void
      *
      */
-    public function download_reports($activities, $selectedstudents, $courseid) {
+    public function download_reports($activities, $selectedstudents, $courseid, $tasksversion) {
         global $PAGE;
 
         // Increase the server timeout to handle the creation and sending of large zip files.
@@ -209,6 +210,8 @@ class reportmanager {
         // Remove brackets and quotes from the string.
         $selectedstudents = explode(',', str_replace(['[', ']', '"'], '', $selectedstudents));
         $studentidusername = [];
+        $tasksversion = self::tasks_version($tasksversion);
+        //
 
         // Loop through each item and split into username and userid.
         foreach ($selectedstudents as $student) {
@@ -227,7 +230,13 @@ class reportmanager {
             $activitynames[$activity->cmid] = trim($activity->activity_name);
             foreach (array_chunk($activity->taskids, $batchsize) as $taskchunk) {
                 foreach (array_chunk($studentidusername, $batchsize, true) as $studentchunk) {
-                    $this->process_activity_tasks($taskchunk, $activity, $studentchunk, $output, $grouptasksbyactivity, $studentnames);
+                    $this->process_activity_tasks($taskchunk,
+                                                    $activity,
+                                                    $studentchunk,
+                                                    $output,
+                                                    $grouptasksbyactivity,
+                                                    $studentnames,
+                                                    $tasksversion);
                 }
             }
         }
@@ -248,13 +257,13 @@ class reportmanager {
      * @param mixed $studentnames
      * @return void
      */
-    private function process_activity_tasks($taskchunk, $activity, $studentchunk, $output, &$grouptasksbyactivity, &$studentnames) {
+    private function process_activity_tasks($taskchunk, $activity, $studentchunk, $output, &$grouptasksbyactivity, &$studentnames, $tasksversion) {
         \core_php_time_limit::raise();
 
 
         foreach ($taskchunk as $taskid) {
             foreach ($studentchunk as $username => $studentid) {
-                $data = $output->task_details($taskid, $studentid, $username, $activity);
+                $data = $output->task_details($taskid, $studentid, $username, $activity, $tasksversion[$taskid]);
                 $studentnames[$studentid] = $data['student'];
                 $template = 'report_psgrading_downloader/report_template';
                 $grouptasksbyactivity[$activity->cmid][$studentid][] = $output->render_from_template($template, $data);
@@ -459,13 +468,14 @@ class reportmanager {
      * @param mixed $courseid
      * @return string
      */
-    public function start_report_generation($activities, $selectedstudents, $courseid) {
+    public function start_report_generation($activities, $selectedstudents, $courseid, $tasksversion) {
 
         $task = new \report_psgrading_downloader\task\generate_reports();
         $task->set_custom_data([
             'activities' => $activities,
             'selectedstudents' => $selectedstudents,
             'courseid' => $courseid,
+            'tasksversion' => $tasksversion,
         ]);
 
         $taskid = \core\task\manager::queue_adhoc_task($task);
@@ -489,6 +499,26 @@ class reportmanager {
         } else {
             return 'not_found';
         }
+    }
+
+    /**
+     * unstructure the tasksversion parameter
+     *
+     * @param mixed $tasksversion
+     * @return array
+     */
+    public function tasks_version($tasksversion) {
+        $tasksversion = json_decode($tasksversion);
+
+        $aux = [];
+        foreach ($tasksversion as $version) {
+            $v = explode('_', $version);
+            $taskid = $v[0];
+            $version = $v[1];
+            $aux[$taskid] = $version;
+        }
+
+        return $aux;
     }
 
 

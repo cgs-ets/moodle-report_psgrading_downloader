@@ -36,18 +36,18 @@ class report_psgrading_downloader_renderer extends plugin_renderer_base {
      * Undocumented function
      *
      * @param mixed $courseid
-     * @param mixed $includeunpublished
+     * @param mixed $includeunreleased
      * @param mixed $url
      * @param mixed $groups
      * @param mixed $activityids
      * @return void
      */
-    public function render_selection($courseid,  $includeunpublished, $url, $groups, $activityids) {
+    public function render_selection($courseid,  $includeunreleased, $url, $groups, $activityids) {
 
         $manager = new reportmanager();
 
         // Get the tasks for each activity.
-        $tasks = $manager->get_activity_tasks($activityids, $includeunpublished);
+        $tasks = $manager->get_activity_tasks($activityids, $includeunreleased);
         // Check if it tasks comes empty.
         if (count($tasks) == 0) {
             $message = get_string('notmatchedcriteria', 'report_psgrading_downloader');
@@ -72,9 +72,11 @@ class report_psgrading_downloader_renderer extends plugin_renderer_base {
 
         // Group tasks by activity.
         $tasksbyactivity = [];
+        $tasksversion = [];
 
         foreach ($tasks as $task) {
             $tasksbyactivity[$task->activity_name][] = $task->taskname;
+            $tasksversion[] = $task->id . '_' . $task->oldorder;
             // Collect the details.
             if (array_key_exists($task->activity_name, $psgradingjson)) {
                 $details = $psgradingjson[$task->activity_name];
@@ -85,6 +87,7 @@ class report_psgrading_downloader_renderer extends plugin_renderer_base {
                 $activitydetail->cmid = $task->cmid;
                 $activitydetail->activity_name = $task->activity_name;
                 $activitydetail->taskids = [$task->id];
+                $activitydetail->version = [$task->id . '_' . $task->oldorder];
                 $psgradingjson[$task->activity_name] = $activitydetail;
             }
         }
@@ -110,7 +113,7 @@ class report_psgrading_downloader_renderer extends plugin_renderer_base {
             // Create a row for each student with tasks grouped by activity.
             $taskcolumns = [];
             foreach ($formattedtasksbyactivity as $activity => $tasks) {
-                $taskcolumns[] = '';//$tasks;
+                $taskcolumns[] = '';
             }
 
             $row = array_merge([$checkbox, $namewithpicture], $taskcolumns);
@@ -126,7 +129,6 @@ class report_psgrading_downloader_renderer extends plugin_renderer_base {
             $headers[] = $header;
         }
 
-
         $data = [
             'headers' => $headers,
             'action' => $url,
@@ -136,7 +138,9 @@ class report_psgrading_downloader_renderer extends plugin_renderer_base {
             'psgradingjson' => json_encode($psgradingjson),
             'allstudents' => json_encode($allstudents),
             'id' => $courseid,
+            'tasksversion' => json_encode($tasksversion),
         ];
+        // TODO: Poner en algun lado si es la version vieja, asi no dibuja el engagement rubric
 
         $template = $this->render_from_template('report_psgrading_downloader/main', $data);
 
@@ -147,7 +151,7 @@ class report_psgrading_downloader_renderer extends plugin_renderer_base {
 
     // Get a task context details.
     // Based on get_other_values from  mod\psgrading\classes\external\details_exporter.php
-    public function task_details($taskid, $studentid, $username, $activity) {
+    public function task_details($taskid, $studentid, $username, $activity, $taskversion) {
         global $CFG;
 
         $task = new Task($taskid);
@@ -180,21 +184,21 @@ class report_psgrading_downloader_renderer extends plugin_renderer_base {
         $task->criterions = array_values($task->criterions);
 
         // Load task engagements.
-        // $task->engagements = task::get_engagement($task->id);
-        // foreach ($task->engagements as $i => $engagement) {
-        // if ($engagement->hidden) {
-        // unset($task->engagements[$i]);
-        // continue;
-        // }
-        // Add selections only if task is released. And not hidden from student.
-        // if (isset($gradeinfo->engagements[$engagement->id]) && $task->released && !utils::is_hide_ps_grades()) {
-        // There is a gradelevel chosen for this engagement.
-        // $engagement->{'level' . $gradeinfo->engagements[$engagement->id]->gradelevel . 'selected'} = true;
-        // }
-        // }
+        $task->engagements = task::get_engagement($task->id);
+        foreach ($task->engagements as $i => $engagement) {
+            if ($engagement->hidden) {
+                unset($task->engagements[$i]);
+                continue;
+            }
+            // Add selections only if task is released. And not hidden from student.
+            if (isset($gradeinfo->engagements[$engagement->id]) && $task->released && !utils::is_hide_ps_grades()) {
+                // There is a gradelevel chosen for this engagement.
+                $engagement->{'level' . $gradeinfo->engagements[$engagement->id]->gradelevel . 'selected'} = true;
+            }
+        }
 
         // // Zero indexes so templates work.
-        // $task->engagements = array_values($task->engagements);
+        $task->engagements = array_values($task->engagements);
 
         if ($task->released && !utils::is_hide_ps_grades()) {
             // Get selected MyConnect grade evidences.
@@ -243,7 +247,8 @@ class report_psgrading_downloader_renderer extends plugin_renderer_base {
          */
         $stylesheet  = '';
         $stylesheet .= file_get_contents($CFG->wwwroot . '/report/psgrading_downloader/styles.css');
-
+        error_log(print_r("TASK VERSION!!!!!!!!!", true));
+        error_log(print_r($taskversion, true));
         return [
             'task' => $task,
             'activityname' => $activity->activity_name,
@@ -251,6 +256,7 @@ class report_psgrading_downloader_renderer extends plugin_renderer_base {
             'gradeinfo' => $gradeinfo,
             'isstaff' => false,
             'stylesheet' => $stylesheet,
+            'taskversion' => $taskversion,
         ];
 
     }

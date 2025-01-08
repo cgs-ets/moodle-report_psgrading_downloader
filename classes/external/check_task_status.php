@@ -48,7 +48,7 @@ trait check_task_status {
         );
     }
     /**
-     * Undocumented function
+     * Returns the status of the adhock task
      *
      * @param mixed $taskid
      * @return array

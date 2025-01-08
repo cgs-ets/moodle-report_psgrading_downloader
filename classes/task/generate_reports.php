@@ -50,7 +50,7 @@ class generate_reports extends \core\task\adhoc_task {
         try {
 
             $manager = new \report_psgrading_downloader\reportmanager();
-            $manager->download_reports($data->activities, $data->selectedstudents, $data->courseid);
+            $manager->download_reports($data->activities, $data->selectedstudents, $data->courseid, $data->tasksversion);
 
             // Update status to 'complete'.
             $this->update_task_status($taskid, 'complete');
@@ -58,7 +58,7 @@ class generate_reports extends \core\task\adhoc_task {
             // Update status to 'failed'.
             $this->update_task_status($taskid, 'failed');
             $this->delete_task($taskid);
-            
+
             throw $e;
         }
     }

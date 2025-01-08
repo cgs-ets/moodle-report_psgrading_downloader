@@ -137,33 +137,41 @@ select#id_filterbygroup {
     margin-bottom: 25px;
 }
 
-.details-criterions {
+.details-criterions,
+.details-engagements {
     margin-bottom: 30px;
 }
 
 .details-criterions .headings,
-.details-criterions .criterions {
+.details-criterions .criterions,
+.details-engagements .headings,
+.details-engagements .engagements {
     display: table;
     width: 100%;
     border-collapse: collapse;
 }
 
 .details-criterions .tbl-th,
-.details-criterions .tbl-tr {
+.details-criterions .tbl-tr,
+.details-engagements .tbl-th,
+.details-engagements .tbl-tr {
     display: table-row;
     padding: 0;
 }
 
-.details-criterions .tbl-th {
+.details-criterions .tbl-th,
+.details-engagements .tbl-th {
     font-weight: 600;
     font-size: 110%;
 }
 
-.details-criterions .tbl-th .tbl-col {
+.details-criterions .tbl-th .tbl-col,
+.details-engagements .tbl-th .tbl-col {
     border: 0 none;
 }
 
-.details-criterions .tbl-col {
+.details-criterions .tbl-col,
+.details-engagements .tbl-col {
     display: table-cell;
     width: 20%;
     padding: 5px 5px 5px 5px;
@@ -172,23 +180,27 @@ select#id_filterbygroup {
     border: 1px dashed #ccc;
 }
 
-.details-criterions .tbl-col.tbl-col-first {
+.details-criterions .tbl-col.tbl-col-first,
+.details-engagements .tbl-col.tbl-col-first {
     padding-left: 0;
 }
 
 .details-criterions .tbl-col.level1,
-.details-criterions .tbl-col.level5 {
+.details-criterions .tbl-col.level5,
+.details-engagements .tbl-col.level1 {
     width: 10%;
 }
 
-.details-criterions .tbl-col .box {
+.details-criterions .tbl-col .box,
+.details-engagements .tbl-col .box {
     width: 100%;
     padding: 10px;
     font-size: 90%;
     border-radius: 2px;
 }
 
-.details-criterions .tbl-col.descriptor {
+.details-criterions .tbl-col.descriptor,
+.details-engagements .tbl-col.descriptor {
     border: 1px solid #ccc;
     background: #f2f4f6;
     border-right: 1px solid #ccc;
@@ -198,19 +210,23 @@ select#id_filterbygroup {
     background-color: #D90617;
 }
 
-.details-criterions .tbl-col.level4.selected {
+.details-criterions .tbl-col.level4.selected,
+.details-engagements .tbl-col.level4.selected {
     background-color: #F97D01;
 }
 
-.details-criterions .tbl-col.level3.selected {
+.details-criterions .tbl-col.level3.selected,
+.details-engagements .tbl-col.level3.selected {
     background-color: #FFDB00;
 }
 
-.details-criterions .tbl-col.level2.selected {
+.details-criterions .tbl-col.level2.selected,
+.details-engagements .tbl-col.level2.selected {
     background-color: #6BB82E;
 }
 
-.details-criterions .tbl-col.level1.selected {
+.details-criterions .tbl-col.level1.selected,
+.details-engagements .tbl-col.level1.selected {
     background-color: #00812F;
 }
 

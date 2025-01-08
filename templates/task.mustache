@@ -1,11 +1,11 @@
 <div class="psgrading-details">
-      <!-- SELECTED STUDENT HEADER START --> <div class="psgrading-header">  
-        <h1 class = 'activitynameheader'> {{activityname}} </h1> 
+      <!-- SELECTED STUDENT HEADER START --> <div class="psgrading-header">
+        <h1 class = 'activitynameheader'> {{activityname}} </h1>
         <div class="selected-student" data-userid="{{student.id}}">
          <a href="{{student.overviewurl}}"><span class="name">{{student.fullname}}</span></a>
         </div>
     </div> <!-- SELECTED STUDENT HEADER END-->
-  
+
     <div class="contents">
         <h2>{{task.taskname}} </h2>
         <h3>{{ task.pypuoi}}</h3>
@@ -24,7 +24,9 @@
                     <br>
                      <strong>{{ gradeinfo.engagementlang}} </strong>
                      <br><br>
-                    {{! >mod_psgrading/details_engagement}}
+                     {{#taskversion}}
+                        {{>mod_psgrading/details_engagement}}
+                     {{/taskversion}}
                 </div>
             {{/gradeinfo.engagement}}
             {{>mod_psgrading/details_evidence}}

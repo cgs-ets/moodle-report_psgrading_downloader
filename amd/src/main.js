@@ -4,7 +4,8 @@ define(['core/ajax'], function (Ajax) {
 
     function init() {
         let usernames = [];
-        let selectedActivities = JSON.parse(document.querySelector('.psgrading-downloader-table').getAttribute('data-activities-json'));;
+        let selectedActivities = JSON.parse(document.querySelector('.psgrading-downloader-table').getAttribute('data-activities-json'));
+        document.querySelector('input[name="tasksversion"]').value = document.querySelector('.psgrading-downloader-table').getAttribute('data-tasks-version');
         (new Controls(usernames, selectedActivities)).main();
     }
 
