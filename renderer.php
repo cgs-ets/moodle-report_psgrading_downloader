@@ -140,7 +140,6 @@ class report_psgrading_downloader_renderer extends plugin_renderer_base {
             'id' => $courseid,
             'tasksversion' => json_encode($tasksversion),
         ];
-        // TODO: Poner en algun lado si es la version vieja, asi no dibuja el engagement rubric
 
         $template = $this->render_from_template('report_psgrading_downloader/main', $data);
 
