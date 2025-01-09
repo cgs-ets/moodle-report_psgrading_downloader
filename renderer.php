@@ -172,13 +172,12 @@ class report_psgrading_downloader_renderer extends plugin_renderer_base {
                 continue;
             }
             // Add selections only if task is released. And not hidden from student.
-            if (isset($gradeinfo->criterions[$criterion->id]) && $task->released && !utils::is_hide_ps_grades()) {
+            if (isset($gradeinfo->criterions[$criterion->id]) ) {
                 // There is a gradelevel chosen for this criterion.
                 $criterion->{'level' . $gradeinfo->criterions[$criterion->id]->gradelevel . 'selected'} = true;
             }
         }
 
-        // TODO: comment the engagement section until you get the OK for the new format
         // Zero indexes so templates work.
         $task->criterions = array_values($task->criterions);
 
@@ -190,7 +189,7 @@ class report_psgrading_downloader_renderer extends plugin_renderer_base {
                 continue;
             }
             // Add selections only if task is released. And not hidden from student.
-            if (isset($gradeinfo->engagements[$engagement->id]) && $task->released && !utils::is_hide_ps_grades()) {
+            if (isset($gradeinfo->engagements[$engagement->id])) {
                 // There is a gradelevel chosen for this engagement.
                 $engagement->{'level' . $gradeinfo->engagements[$engagement->id]->gradelevel . 'selected'} = true;
             }
@@ -199,7 +198,6 @@ class report_psgrading_downloader_renderer extends plugin_renderer_base {
         // // Zero indexes so templates work.
         $task->engagements = array_values($task->engagements);
 
-        if ($task->released && !utils::is_hide_ps_grades()) {
             // Get selected MyConnect grade evidences.
             $task->myconnectevidences = [];
             $task->myconnectevidencejson = '';
@@ -235,12 +233,7 @@ class report_psgrading_downloader_renderer extends plugin_renderer_base {
                     ];
                 }
             }
-        } else {
-            // Unset some things if task has not been released yet.
-            unset($gradeinfo->engagement);
-            unset($gradeinfo->engagementlang);
-            unset($gradeinfo->comment);
-        }
+        
         /**
          * The bootstrap css must be added in the report_template.mustache for DOMPdf to pick it up.
          */

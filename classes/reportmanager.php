@@ -291,6 +291,7 @@ class reportmanager {
         foreach ($studenttasktemplates as $cmid => $module) {
             foreach ($module as $studentid => $studenttemplates) {
 
+
                 $renderer->sanitisetemplate($studenttemplates);
                 $tasks = implode($studenttemplates);
 
@@ -298,7 +299,6 @@ class reportmanager {
                 $options->set('tempDir', $tempdir);
                 $options->set('isRemoteEnabled', true);
                 $options->set('isHtml5ParserEnabled', true);
-
                 $dompdf = new Dompdf($options);
                 $dompdf->loadHtml($tasks);
                 $dompdf->setPaper('a2', 'landscape');
