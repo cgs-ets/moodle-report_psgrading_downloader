@@ -1,8 +1,8 @@
 # psgrading_downloader #
 
-TODO Describe the plugin shortly here.
+Plugin to generate a PDF version of a PS Grading activity.
 
-TODO Provide more detailed description here.
+.
 
 ## Installing via uploaded ZIP file ##
 
