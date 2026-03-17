@@ -26,6 +26,8 @@ namespace report_psgrading_downloader;
 
 use Dompdf\Dompdf;
 use Dompdf\Options;
+use mod_psgrading\persistents\task;
+use PSgGradingDownloaderExcelWorkbook;
 
 defined('MOODLE_INTERNAL') || die();
 
@@ -36,6 +38,12 @@ require($CFG->dirroot . '//report//psgrading_downloader//vendor//autoload.php');
  * Undocumented class
  */
 class reportmanager {
+
+
+    private const PS_GRADING_DOWNLOADER_HEADINGSROW = 4;
+    private const PS_GRADING_DOWNLOADER_HEADINGTITLES = array('size' => 12, 'bold' => 1, 'text_wrap' => true, 'align' => 'centre');
+    private const PS_GRADING_DOWNLOADER_HEADINGSUBTITLES = array('bold' => 1, 'text_wrap' => true, 'align' => 'fill');
+
 
     /**
      * Get all the activities of type psgrading for a given course.
@@ -246,8 +254,9 @@ class reportmanager {
 
     }
 
+    
     /**
-     * Undocumented function
+     * Process activity tasks
      *
      * @param mixed $taskchunk
      * @param mixed $activity
@@ -461,7 +470,7 @@ class reportmanager {
 
 
     /**
-     * Undocumented function
+     * Start full report generation process
      *
      * @param mixed $activities
      * @param mixed $selectedstudents
@@ -476,6 +485,31 @@ class reportmanager {
             'selectedstudents' => $selectedstudents,
             'courseid' => $courseid,
             'tasksversion' => $tasksversion,
+        ]);
+
+        $taskid = \core\task\manager::queue_adhoc_task($task);
+
+        // Return the task ID to the user.
+        return json_encode(['status' => 'started', 'taskid' => $taskid]);
+    }
+
+    /**
+     * Start task report generation process
+     *
+     * @param mixed $activities
+     * @param mixed $selectedstudents
+     * @param mixed $courseid
+     * @return string
+     */
+    public function start_task_report_generation($activities, $selectedstudents, $courseid, $tasksversion, $selectedtasks) {
+
+        $task = new \report_psgrading_downloader\task\generate_task_reports();
+        $task->set_custom_data([
+            'activities' => $activities,
+            'selectedstudents' => $selectedstudents,
+            'courseid' => $courseid,
+            'tasksversion' => $tasksversion,
+            'selectedtasks' => $selectedtasks
         ]);
 
         $taskid = \core\task\manager::queue_adhoc_task($task);
@@ -520,6 +554,388 @@ class reportmanager {
 
         return $aux;
     }
+
+    /**
+     * Generate an Excel file with the PS grading task grades.
+     *
+     * @param string $activities JSON-encoded activities array.
+     * @param string $selectedstudents Comma-separated list of username_userid pairs.
+     * @param int $courseid The course ID.
+     * @param string $tasksversion JSON-encoded task versions.
+     * @param string $selectedtasks Comma-separated task IDs.
+     */
+    public function download_task_reports($activities, $selectedstudents, $courseid, $tasksversion, $selectedtasks) {
+        global $DB;
+
+        \core_php_time_limit::raise();
+
+        $course = $DB->get_record('course', array('id' => $courseid), '*', MUST_EXIST);
+        $activities = json_decode($activities);
+        $activity = $activities[0];
+
+        // Parse students: "username_userid,username_userid,...".
+        $selectedstudents = explode(',', str_replace(['[', ']', '"'], '', $selectedstudents));
+        $studentidusername = [];
+
+        foreach ($selectedstudents as $student) {
+            $parts = explode('_', trim($student));
+            if (count($parts) >= 2) {
+                $username = $parts[0];
+                $userid = intval($parts[1]);
+                $studentidusername[$username] = $userid;
+            }
+        }
+
+        // Get task details (criterions and engagements).
+        $taskdetails = $this->get_activity_task_details($activity->taskids);
+
+        // Get students enrolled in the course that have grades for these tasks.
+        $taskidsarray = array_keys($taskdetails);
+        $taskidsstr = implode(',', $taskidsarray);
+        $students = $this->get_students_in_course($courseid, [0], $taskidsstr);
+
+        // Filter to only selected students.
+        $selecteduserids = array_values($studentidusername);
+        $students = array_filter($students, function($student) use ($selecteduserids) {
+            return in_array($student->id, $selecteduserids);
+        });
+
+        // Load Excel dependencies.
+        global $CFG;
+        require_once($CFG->dirroot . '/report/psgrading_downloader/classes/excelmanager.php');
+
+        // Create workbook.
+        $filename = $this->report_psgrading_downloader_clean_filename(
+            $course->shortname . '_PS_grading_Tasks_Report'
+        );
+        $workbook = new PSgGradingDownloaderExcelWorkbook($filename);
+
+        // For each task, create a worksheet.
+        foreach ($taskdetails as $taskid => $taskdata) {
+            $psgrtask = new task($taskid);
+            $taskname = $psgrtask->get('taskname');
+
+            $sheetname = $this->report_psgrading_downloader_clean_filename($taskname);
+            $sheetname = substr($sheetname, 0, 31); // Excel sheet name limit.
+            $sheet = $workbook->add_worksheet($sheetname);
+
+            // Rows 0-2: Course name, Activity name, Task name.
+            $this->report_psgrading_downloader_add_header(
+                $workbook, $sheet, $course->fullname, $activity->activity_name, $taskname
+            );
+
+            // Filter out hidden criterions and engagements.
+            $criterions = array_filter($taskdata->criterions, function($c) {
+                return !$c->hidden;
+            });
+            $engagements = array_filter($taskdata->engagement, function($e) {
+                return !$e->hidden;
+            });
+
+            // Rows 4-5: Column headers with merged cells.
+            $totalcols = $this->write_task_headers($workbook, $sheet, $criterions, $engagements);
+
+            // Merge the title rows across all columns.
+            $titleformat = $workbook->add_format(array('size' => 18, 'bold' => 1));
+            if ($totalcols > 0) {
+                $sheet->merge_cells(0, 0, 0, $totalcols, $titleformat);
+                $sheet->merge_cells(1, 0, 1, $totalcols, $titleformat);
+                $sheet->merge_cells(2, 0, 2, $totalcols, $titleformat);
+            }
+
+            // Row 6+: Student data rows.
+            $this->write_student_rows($sheet, $students, $criterions, $engagements, $taskid);
+        }
+
+        // Save workbook to temp directory.
+        $tempdir = make_temp_directory('report_psgrading_downloader');
+        $excelpath = $workbook->savetotempdir($tempdir);
+
+        // Wrap in a zip for download_reports.php compatibility.
+        $coursename = $DB->get_field('course', 'fullname', ['id' => $courseid]);
+        $dirname = clean_filename($coursename . '.zip');
+        $zipfilepath = $tempdir . '/' . $dirname;
+
+        $zipfile = new \zip_archive();
+        @unlink($zipfilepath);
+        $zipfile->open($zipfilepath);
+        $zipfile->add_file_from_pathname(basename($excelpath), $excelpath);
+        $zipfile->close();
+
+        // Clean up the xlsx temp file.
+        @unlink($excelpath);
+    }
+
+    /**
+     * Get the active (non-null, non-empty) levels for a criterion or engagement item.
+     *
+     * @param \stdClass $item A criterion or engagement record.
+     * @param int $maxlevels Maximum number of levels (5 for criterions, 4 for engagements).
+     * @return array Associative array of level number => level text.
+     */
+    private function get_active_levels($item, $maxlevels) {
+        $levels = [];
+        for ($i = 1; $i <= $maxlevels; $i++) {
+            $key = 'level' . $i;
+            if (isset($item->$key) && $item->$key !== null && trim($item->$key) !== '') {
+                $levels[$i] = $item->$key;
+            }
+        }
+        return $levels;
+    }
+
+    /**
+     * Write the column headers for criterions and engagements (rows 4 and 5).
+     *
+     * @param PSgGradingDownloaderExcelWorkbook $workbook The workbook instance.
+     * @param \MoodleExcelWorksheet $sheet The worksheet.
+     * @param array $criterions Array of criterion records.
+     * @param array $engagements Array of engagement records.
+     * @return int The last column position used.
+     */
+    private function write_task_headers($workbook, $sheet, $criterions, $engagements) {
+        $format = $workbook->add_format(self::PS_GRADING_DOWNLOADER_HEADINGTITLES);
+        $format2 = $workbook->add_format(self::PS_GRADING_DOWNLOADER_HEADINGSUBTITLES);
+        $groupformat = $workbook->add_format(array('size' => 14, 'bold' => 1, 'align' => 'centre'));
+
+        $pos = 0;
+
+        // "Student" header merged across 2 columns.
+        $sheet->write_string(self::PS_GRADING_DOWNLOADER_HEADINGSROW, $pos, 'Student', $format);
+        $sheet->merge_cells(self::PS_GRADING_DOWNLOADER_HEADINGSROW, $pos, self::PS_GRADING_DOWNLOADER_HEADINGSROW, $pos + 1, $format);
+
+        // Sub-headers for student columns.
+        $sheet->write_string(5, $pos++, 'First Name', $format2);
+        $sheet->write_string(5, $pos++, 'Last Name', $format2);
+
+        // Calculate total columns for criterions to write the group title.
+        $criterionstart = $pos;
+        $criteriontotalcols = 0;
+        foreach ($criterions as $criterion) {
+            $activelevels = $this->get_active_levels($criterion, 5);
+            $criteriontotalcols += count($activelevels);
+        }
+
+        // Row 3: "Criterions" group title merged across all criterion columns.
+        if ($criteriontotalcols > 0) {
+            $sheet->write_string(3, $criterionstart, 'Criterions', $groupformat);
+            if ($criteriontotalcols > 1) {
+                $sheet->merge_cells(3, $criterionstart, 3, $criterionstart + $criteriontotalcols - 1, $groupformat);
+            }
+        }
+
+        // Criterion headers (row 4 and 5).
+        foreach ($criterions as $criterion) {
+            $activelevels = $this->get_active_levels($criterion, 5);
+            $levelcount = count($activelevels);
+
+            if ($levelcount == 0) {
+                continue;
+            }
+
+            // Write criterion description merged across its level columns.
+            $sheet->write_string(self::PS_GRADING_DOWNLOADER_HEADINGSROW, $pos, $criterion->description, $format);
+            $lastcol = $pos + $levelcount - 1;
+            if ($levelcount > 1) {
+                $sheet->merge_cells(self::PS_GRADING_DOWNLOADER_HEADINGSROW, $pos, self::PS_GRADING_DOWNLOADER_HEADINGSROW, $lastcol, $format);
+            }
+            $sheet->set_column($pos, $lastcol, 20);
+
+            // Write level sub-headers.
+            foreach ($activelevels as $leveltext) {
+                $sheet->write_string(5, $pos++, $leveltext, $format2);
+            }
+        }
+
+        // Calculate total columns for engagements to write the group title.
+        $engagementstart = $pos;
+        $engagementtotalcols = 0;
+        foreach ($engagements as $engagement) {
+            $activelevels = $this->get_active_levels($engagement, 4);
+            $engagementtotalcols += count($activelevels);
+        }
+
+        // Row 3: "Engagement" group title merged across all engagement columns.
+        if ($engagementtotalcols > 0) {
+            $sheet->write_string(3, $engagementstart, 'Engagement', $groupformat);
+            if ($engagementtotalcols > 1) {
+                $sheet->merge_cells(3, $engagementstart, 3, $engagementstart + $engagementtotalcols - 1, $groupformat);
+            }
+        }
+
+        // Engagement headers (row 4 and 5).
+        foreach ($engagements as $engagement) {
+            $activelevels = $this->get_active_levels($engagement, 4);
+            $levelcount = count($activelevels);
+
+            if ($levelcount == 0) {
+                continue;
+            }
+
+            // Write engagement description merged across its level columns.
+            $sheet->write_string(self::PS_GRADING_DOWNLOADER_HEADINGSROW, $pos, $engagement->description, $format);
+            $lastcol = $pos + $levelcount - 1;
+            if ($levelcount > 1) {
+                $sheet->merge_cells(self::PS_GRADING_DOWNLOADER_HEADINGSROW, $pos, self::PS_GRADING_DOWNLOADER_HEADINGSROW, $lastcol, $format);
+            }
+            $sheet->set_column($pos, $lastcol, 20);
+
+            // Write level sub-headers.
+            foreach ($activelevels as $leveltext) {
+                $sheet->write_string(5, $pos++, $leveltext, $format2);
+            }
+        }
+
+        // Grading info headers: Comment and Graded By.
+        $sheet->write_string(self::PS_GRADING_DOWNLOADER_HEADINGSROW, $pos, 'Grading Info', $format);
+        $sheet->merge_cells(self::PS_GRADING_DOWNLOADER_HEADINGSROW, $pos, self::PS_GRADING_DOWNLOADER_HEADINGSROW, $pos + 1, $format);
+        $sheet->write_string(5, $pos, 'Comment', $format2);
+        $sheet->set_column($pos, $pos, 30);
+        $pos++;
+        $sheet->write_string(5, $pos, 'Graded By', $format2);
+        $sheet->set_column($pos, $pos, 20);
+        $pos++;
+
+        $sheet->set_row(3, 25);
+        $sheet->set_row(self::PS_GRADING_DOWNLOADER_HEADINGSROW, 30, $format);
+
+        return $pos - 1;
+    }
+
+    /**
+     * Write the student data rows starting at row 6.
+     *
+     * @param \MoodleExcelWorksheet $sheet The worksheet.
+     * @param array $students Array of student user records.
+     * @param array $criterions Array of criterion records (non-hidden).
+     * @param array $engagements Array of engagement records (non-hidden).
+     * @param int $taskid The task ID.
+     */
+    private function write_student_rows($sheet, $students, $criterions, $engagements, $taskid) {
+        $row = 5; // Data starts at row 6 (0-indexed = 5, but incremented before writing).
+        $format = array('text_wrap' => true);
+        $gradeformat = array('align' => 'centre');
+
+        foreach ($students as $student) {
+            $row++;
+            $col = 0;
+
+            // Student info (no username).
+            $sheet->write_string($row, $col++, $student->firstname, $format);
+            $sheet->write_string($row, $col++, $student->lastname, $format);
+
+            // Get grade info for this student and task.
+            $gradeinfo = task::get_task_user_gradeinfo($taskid, $student->id);
+
+            // Criterion columns — show grade label e.g. "3(MS)", "1(FH)".
+            foreach ($criterions as $criterion) {
+                $activelevels = $this->get_active_levels($criterion, 5);
+
+                foreach ($activelevels as $levelnumber => $leveltext) {
+                    $value = '';
+                    if (!empty($gradeinfo) && isset($gradeinfo->criterions[$criterion->id])) {
+                        if ($gradeinfo->criterions[$criterion->id]->gradelevel == $levelnumber) {
+                            $value = \mod_psgrading\utils::GRADELANG[(string)$levelnumber]['full'] ?? '';
+                        }
+                    }
+                    $sheet->write_string($row, $col++, $value, $gradeformat);
+                }
+            }
+
+            // Engagement columns — show grade label e.g. "1(E)", "3(ACC)".
+            foreach ($engagements as $engagement) {
+                $activelevels = $this->get_active_levels($engagement, 4);
+
+                foreach ($activelevels as $levelnumber => $leveltext) {
+                    $value = '';
+                    if (!empty($gradeinfo) && isset($gradeinfo->engagements[$engagement->id])) {
+                        if ($gradeinfo->engagements[$engagement->id]->gradelevel == $levelnumber) {
+                            $value = \mod_psgrading\utils::GRADEENGAGEMENTLANG[(string)$levelnumber]['full'] ?? '';
+                        }
+                    }
+                    $sheet->write_string($row, $col++, $value, $gradeformat);
+                }
+            }
+
+            // Comment and Graded By columns.
+            $comment = '';
+            $grader = '';
+            if (!empty($gradeinfo)) {
+                $comment = $gradeinfo->comment ?? '';
+                $grader = $gradeinfo->graderusername ?? '';
+            }
+            $sheet->write_string($row, $col++, $comment, $format);
+            $sheet->write_string($row, $col++, $grader, $format);
+        }
+    }
+
+    //  Get the criterions and engagement descriptors
+    // and levels.
+    private function get_activity_task_details($taskids) {
+        global $DB;
+
+        // Handle both JSON string and already-decoded array.
+        if (is_string($taskids)) {
+            $taskids = json_decode($taskids);
+        }
+        $psgtasks = [];
+
+        foreach($taskids as $id) {
+            $psgrtask = new task($id);
+            $psgt = new \stdClass();
+            $psgt->taskid = $id;
+            $psgt->criterions = $psgrtask->get_criterions($id);
+            $psgt->engagement = $psgrtask->get_engagement($id);
+            $psgtasks[$id] = $psgt;
+
+        }
+
+
+        return $psgtasks;
+
+    }
+
+
+    private function report_psgrading_downloader_clean_filename($filename) {
+        // Remove or replace problematic characters for Windows file systems
+        $filename = preg_replace('/[<>:"|?*;]/', '_', $filename);
+
+        // Replace spaces and dashes with underscores
+        $filename = str_replace([' ', '-'], '_', $filename);
+
+        // Remove leading/trailing spaces, dots and underscores
+        $filename = trim($filename, ' ._');
+
+        // Replace multiple consecutive underscores with single underscore
+        $filename = preg_replace('/_+/', '_', $filename);
+
+        // Ensure filename is not empty
+        if (empty($filename)) {
+            $filename = 'file';
+        }
+
+        // Limit filename length (Windows has 255 char limit)
+        if (strlen($filename) > 200) {
+            $filename = substr($filename, 0, 200);
+            $filename = rtrim($filename, '_');
+        }
+
+        return $filename;
+    }
+
+    private function report_psgrading_downloader_add_header(\MoodleExcelWorkbook $workbook, \MoodleExcelWorksheet $sheet, $coursename, $modname, $methodname) {
+
+        $format = $workbook->add_format(array('size' => 18, 'bold' => 1));
+        $sheet->write_string(0, 0, $coursename, $format);
+        $sheet->set_row(0, 24, $format);
+        $format = $workbook->add_format(array('size' => 16, 'bold' => 1));
+        $sheet->write_string(1, 0, $modname, $format);
+        $sheet->set_row(1, 21, $format);
+        $sheet->write_string(2, 0, $methodname, $format);
+        $sheet->set_row(2, 21, $format);
+        
+    }
+
 
 
 }

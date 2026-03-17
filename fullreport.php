@@ -23,6 +23,7 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
+use core\output\html_writer;
 
 require_once('../../config.php');
 require_once('psgrading_downloader_form.php');
@@ -46,7 +47,7 @@ if ($selectedusers != '[]') {
 
 }
 
-$url = new moodle_url('/report/psgrading_downloader/index.php', ['id' => $id]);
+$url = new moodle_url('/report/psgrading_downloader/fullreport.php', ['id' => $id]);
 $PAGE->set_url($url);
 $PAGE->set_pagelayout('report');
 $PAGE->add_body_class('report_psgrading_downloader');
@@ -66,7 +67,57 @@ $PAGE->set_heading(format_string($course->fullname, true, ['context' => $context
 
 echo $OUTPUT->header();
 
- $renderer = $PAGE->get_renderer('report_psgrading_downloader');
- $renderer->display_landing_report_page($id);
+echo html_writer::div("<h2>PS Grading Full Reports Downloader </h2>");
+echo '<br>';
+
+$psids = $manager->get_psgrading_activities($id);
+$groups = $manager->get_groups_in_course($id);
+$mform = new psgrading_downloader_form(null, ['id' => $id, 'psids' => $psids, 'groups' => $groups]);
+$filter = false;
+$activityids = '';
+
+
+if ($mform->is_cancelled()) {
+    redirect(new moodle_url('/report/psgrading_downloader/index.php', ['id' => $id]));
+}
+
+// Form processing and displaying is done here.
+if ($data = $mform->get_data()) {
+    // In this case you process validated data. $mform->get_data() returns data posted in form.
+    $activityids        = in_array('0', $data->psgradinactivities) ? explode(',', $data->allcmids) : $data->psgradinactivities;
+    $includeunreleased = $data->includeunreleased;
+    $groups             = in_array('0', $data->filterbygroup) ? explode(',', $data->allgroups) : $data->filterbygroup;
+    $filter             = true;
+}
+
+if ($id == 0 || $id == 1) {  // 1 is the main page.
+    $message = get_string('cantdisplayerror', 'report_psgrading_downloader');
+    $level   = core\output\notification::NOTIFY_ERROR;
+    \core\notification::add($message, $level);
+} else {
+    echo $OUTPUT->box_start();
+    $renderer = $PAGE->get_renderer('report_psgrading_downloader');
+
+    if (count($psids) == 0) {
+        $message = get_string('nopsgradingactivities', 'report_psgrading_downloader');
+        $level   = core\output\notification::NOTIFY_INFO;
+        \core\notification::add($message, $level);
+    } else {
+        $mform->display();
+
+        if ($downloading) {
+            echo $renderer->showalert();
+        }
+    }
+
+    // Only if the user clicked filter display this.
+    if ($filter) {
+        $url            = $PAGE->url;
+        $coursename     = $DB->get_field('course', 'fullname', ['id' => $id], $strictness = IGNORE_MISSING);
+        echo $renderer->render_selection($id, $includeunreleased, $url, $groups, $activityids);
+    }
+
+    echo $OUTPUT->box_end();
+}
 
 echo $OUTPUT->footer();

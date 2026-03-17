@@ -147,6 +147,126 @@ class report_psgrading_downloader_renderer extends plugin_renderer_base {
         echo $template;
     }
 
+    public function render_task_selection($courseid,  $includeunreleased, $url, $groups, $activityids, $taskids) {
+
+        $manager = new reportmanager();
+
+        // Get the tasks for each activity.
+        $tasks = $manager->get_activity_tasks($activityids, $includeunreleased);
+        // Check if it tasks comes empty.
+        if (count($tasks) == 0) {
+            $message = get_string('notmatchedcriteria', 'report_psgrading_downloader');
+            $level = core\output\notification::NOTIFY_INFO;
+            \core\notification::add($message, $level);
+            return;
+
+        }
+
+        // Filter tasks to only include the ones selected by the user.
+        $selectedtaskids = is_array($taskids) ? $taskids : explode(',', $taskids);
+        $tasks = array_filter($tasks, function($task) use ($selectedtaskids) {
+            return in_array($task->id, $selectedtaskids);
+        });
+
+        if (count($tasks) == 0) {
+            $message = get_string('notmatchedcriteria', 'report_psgrading_downloader');
+            $level = core\output\notification::NOTIFY_INFO;
+            \core\notification::add($message, $level);
+            return;
+        }
+
+        $taskids = implode(',', array_keys($tasks));
+
+        // Get the students.
+        $students = $manager->get_students_in_course($courseid, $groups, $taskids);  // Filter by group.
+        $psgradingjson = [];
+
+        if (count($students) == 0) {
+            $message = get_string('notmatchedcriteria', 'report_psgrading_downloader');
+            $level = core\output\notification::NOTIFY_INFO;
+            \core\notification::add($message, $level);
+
+            return;
+        }
+
+        // Group tasks by activity.
+        $tasksbyactivity = [];
+        $tasksversion = [];
+
+        foreach ($tasks as $task) {
+            $tasksbyactivity[$task->activity_name][] = $task->taskname;
+            $tasksversion[] = $task->id . '_' . $task->oldorder;
+            // Collect the details.
+            if (array_key_exists($task->activity_name, $psgradingjson)) {
+                $details = $psgradingjson[$task->activity_name];
+                array_push($details->taskids , $task->id);
+                $psgradingjson[$task->activity_name] = $details;
+            } else {
+                $activitydetail = new stdClass();
+                $activitydetail->cmid = $task->cmid;
+                $activitydetail->activity_name = $task->activity_name;
+                $activitydetail->taskids = [$task->id];
+                $activitydetail->version = [$task->id . '_' . $task->oldorder];
+                $psgradingjson[$task->activity_name] = $activitydetail;
+            }
+        }
+
+        $psgradingjson = array_values($psgradingjson);
+
+        // Format tasks for each activity.
+        $formattedtasksbyactivity = [];
+
+        foreach ($tasksbyactivity as $activity => $tasknames) {
+            $formattedtasksbyactivity[$activity] = implode("<br>", array_filter(array_map('trim', $tasknames)));
+        }
+
+        $allstudents = [];
+
+        foreach ($students as $student) {
+            $value = $student->username . '_'.  $student->id;
+            $checkbox = '<input type="checkbox" name="select_student[]" value="' . $value . '">';
+            $profilepictureurl = $this->user_picture($student, ['size' => 50, 'link' => false]);
+            $namewithpicture = $profilepictureurl . ' ' . $student->firstname . ' ' . $student->lastname;
+            $allstudents[] = $student->username . '_'.  $student->id;
+
+            // Create a row for each student with tasks grouped by activity.
+            $taskcolumns = [];
+            foreach ($formattedtasksbyactivity as $activity => $tasks) {
+                $taskcolumns[] = '';
+            }
+
+            $row = array_merge([$checkbox, $namewithpicture], $taskcolumns);
+            $dataaux['rows'][] = $row;
+        }
+
+        $selectall = '<input type="checkbox" name="select_all" value="all" title ="Select all">';
+
+        // $headers = array_merge([$selectall, 'Name'], array_keys($formattedtasksbyactivity));
+        $headers = [$selectall, 'Name'];
+        foreach ($tasksbyactivity as $activity => $tasknames) {
+            $header = '<div class="psgrading-dowloader-header-container"><div class="psgrading-dowloader-header-title"><strong>' . htmlspecialchars($activity) . '</strong></div><hr><div class="psgrading-dowloader-header-tasks">' . implode('<hr>', array_map('htmlspecialchars', $tasknames)) . '</div></div>';
+            $headers[] = $header;
+        }
+
+        $data = [
+            'headers' => $headers,
+            'action' => $url,
+            'rows' => array_map(function($row) {
+                return ['columns' => $row];
+            }, $dataaux['rows']),
+            'psgradingjson' => json_encode($psgradingjson),
+            'allstudents' => json_encode($allstudents),
+            'id' => $courseid,
+            'tasksversion' => json_encode($tasksversion),
+            'selectedtasks' => $taskids
+        ];
+
+        $template = $this->render_from_template('report_psgrading_downloader/main', $data);
+
+        // Output the rendered template.
+        echo $template;
+    }
+
 
     // Get a task context details.
     // Based on get_other_values from  mod\psgrading\classes\external\details_exporter.php
@@ -274,6 +394,14 @@ class report_psgrading_downloader_renderer extends plugin_renderer_base {
      */
     public function showalert() {
         echo $this->render_from_template('report_psgrading_downloader/alert_warning', '');
+    }
+
+    public function display_landing_report_page($id) {
+        $fullreporturl = new \moodle_url('/report/psgrading_downloader/fullreport.php', ['id'=>$id]);
+        $taskreporturl = new \moodle_url('/report/psgrading_downloader/taskreport.php', ['id'=>$id]);
+        $context = ['fullreporturl' => $fullreporturl,
+        'taskreporturl' => $taskreporturl];
+        echo $this->render_from_template('report_psgrading_downloader/index_template', $context);
     }
 
 }

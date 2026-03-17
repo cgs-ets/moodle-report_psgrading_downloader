@@ -1,9 +1,9 @@
 <?php return array(
     'root' => array(
         'name' => 'report_psgrading_downloader/report_psgrading_downloader',
-        'pretty_version' => 'dev-master',
-        'version' => 'dev-master',
-        'reference' => '6d8ebd146dbe5096fee14ae1b95b307207b25bcc',
+        'pretty_version' => 'dev-main',
+        'version' => 'dev-main',
+        'reference' => '5c4fcffc97721c448faa30857b6e770076d29a2e',
         'type' => 'moodle-plugin',
         'install_path' => __DIR__ . '/../../',
         'aliases' => array(),
@@ -47,9 +47,9 @@
             'dev_requirement' => false,
         ),
         'report_psgrading_downloader/report_psgrading_downloader' => array(
-            'pretty_version' => 'dev-master',
-            'version' => 'dev-master',
-            'reference' => '6d8ebd146dbe5096fee14ae1b95b307207b25bcc',
+            'pretty_version' => 'dev-main',
+            'version' => 'dev-main',
+            'reference' => '5c4fcffc97721c448faa30857b6e770076d29a2e',
             'type' => 'moodle-plugin',
             'install_path' => __DIR__ . '/../../',
             'aliases' => array(),

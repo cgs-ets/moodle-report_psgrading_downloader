@@ -15,9 +15,9 @@
 // along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
 
 /**
- *
+ * 
  * @package     report_psgrading_downloader
- * @copyright   2024 Veronica Bermegui
+ * @copyright   2026 Veronica Bermegui
  * @license     https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 namespace report_psgrading_downloader\task;
@@ -26,9 +26,11 @@ defined('MOODLE_INTERNAL') || die();
 
 
 /**
- * Manage the adhoc task to generate the pdf reports
- */
-class generate_reports extends \core\task\adhoc_task {
+ * Manage the adhoc task to generate the excel reports.
+ * 
+ * 
+ **/
+class generate_task_reports extends \core\task\adhoc_task {
 
     use \core\task\logging_trait;
 
@@ -41,15 +43,14 @@ class generate_reports extends \core\task\adhoc_task {
 
         $data = $this->get_custom_data();
         $taskid = $this->get_id();
-        $this->log_start("Processing PS grading report export to PDF for {$data->courseid}");
+        $this->log_start("Processing PS grading task report export to Excel for course {$data->courseid}");
         // Update status to 'in_progress'.
         $this->update_task_status($taskid, 'in_progress');
 
         try {
 
             $manager = new \report_psgrading_downloader\reportmanager();
-            $manager->download_reports($data->activities, $data->selectedstudents, $data->courseid, $data->tasksversion);
-            
+            $manager->download_task_reports($data->activities, $data->selectedstudents, $data->courseid, $data->tasksversion, $data->selectedtasks);
            
             // Update status to 'complete'.
             $this->update_task_status($taskid, 'complete');

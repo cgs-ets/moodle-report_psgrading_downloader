@@ -25,6 +25,7 @@
  */
 
 
+
 function report_psgrading_downloader_extend_navigation_course($navigation, $course, $context) {
 
     if (has_capability('moodle/site:viewuseridentity', $context)) {
