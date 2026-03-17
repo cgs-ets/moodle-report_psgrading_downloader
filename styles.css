@@ -319,3 +319,8 @@ ul.tbl-tr {
 .psgrading-dowloader-header-tasks {
     font-weight: normal;
 }
+
+#fitem_id_selectedactivitiesJSON,
+#fitem_id_selectedtasksJSON {
+    display: none !important;
+}

@@ -812,6 +812,7 @@ class reportmanager {
      * @param int $taskid The task ID.
      */
     private function write_student_rows($sheet, $students, $criterions, $engagements, $taskid) {
+        global $DB;
         $row = 5; // Data starts at row 6 (0-indexed = 5, but incremented before writing).
         $format = array('text_wrap' => true);
         $gradeformat = array('align' => 'centre');
@@ -862,7 +863,13 @@ class reportmanager {
             $grader = '';
             if (!empty($gradeinfo)) {
                 $comment = $gradeinfo->comment ?? '';
-                $grader = $gradeinfo->graderusername ?? '';
+                $graderusername = $gradeinfo->graderusername ?? '';
+                if (!empty($graderusername)) {
+                    $graderuser = $DB->get_record('user', ['username' => $graderusername], 'firstname, lastname');
+                    if ($graderuser) {
+                        $grader = $graderuser->firstname . ' ' . $graderuser->lastname;
+                    }
+                }
             }
             $sheet->write_string($row, $col++, $comment, $format);
             $sheet->write_string($row, $col++, $grader, $format);
